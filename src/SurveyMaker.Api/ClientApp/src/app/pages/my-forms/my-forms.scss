@@ -1,0 +1,31 @@
+// Styles shared from styles.scss; page-specific additions below.
+
+.forms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
+}
+
+.form-card {
+  background: var(--c-white);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--c-border);
+  padding: 1.5rem;
+  transition: box-shadow 0.2s, transform 0.2s;
+  &:hover { box-shadow: var(--shadow-hover); }
+  cursor: pointer;
+
+  .form-title  { font-size: 1rem; font-weight: 600; color: var(--c-deep); margin-bottom: 0.35rem; }
+  .form-meta   { font-size: 0.82rem; color: var(--c-text-light); }
+  .form-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--c-border);
+    font-size: 0.82rem;
+    color: var(--c-text-light);
+  }
+}

@@ -1,0 +1,24 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">My Surveys</h1>
+      <p class="page-subtitle">Surveys you have taken or been invited to complete.</p>
+    </div>
+    <a routerLink="/public-survey" class="btn btn-accent">Browse Surveys</a>
+  </div>
+
+  <div class="card">
+    <div class="empty-state">
+      <svg class="empty-icon" viewBox="0 0 64 64" fill="none">
+        <path d="M8 12 L8 56 L56 56 L56 12 Z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
+        <path d="M8 22 L56 22" stroke="currentColor" stroke-width="2.5"/>
+        <line x1="20" y1="12" x2="20" y2="22" stroke="currentColor" stroke-width="2.5"/>
+        <line x1="44" y1="12" x2="44" y2="22" stroke="currentColor" stroke-width="2.5"/>
+        <path d="M20 36 C22 32 25 32 27 36 C29 40 32 40 34 36 C36 32 39 32 44 35" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+      </svg>
+      <h3>No surveys completed yet</h3>
+      <p>Surveys you fill out will appear here so you can review your responses.</p>
+      <a routerLink="/public-survey" class="btn btn-primary" style="margin-top:0.5rem">Find a Survey to Take</a>
+    </div>
+  </div>
+</div>

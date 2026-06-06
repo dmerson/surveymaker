@@ -1,0 +1,71 @@
+<div class="page-wrap">
+
+  <!-- Welcome banner -->
+  <div class="welcome-banner">
+    <div class="welcome-text">
+      <h1 class="welcome-heading">{{ greeting }}, {{ firstName }}!</h1>
+      <p class="welcome-sub">Ready to create surveys and collect insights?</p>
+    </div>
+    <div class="welcome-actions">
+      <a routerLink="/create-form" class="btn btn-accent">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/></svg>
+        New Form
+      </a>
+      <a routerLink="/public-survey" class="btn btn-outline">Browse Surveys</a>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-value">0</div>
+      <div class="stat-label">My Forms</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">0</div>
+      <div class="stat-label">Responses Received</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">0</div>
+      <div class="stat-label">Surveys Completed</div>
+    </div>
+  </div>
+
+  <!-- Two-column section -->
+  <div class="dash-grid">
+
+    <div class="card">
+      <div class="card-head">
+        <h2 class="card-title">Recent Forms</h2>
+        <a routerLink="/my-forms" class="card-link">View all</a>
+      </div>
+      <div class="empty-state">
+        <svg class="empty-icon" viewBox="0 0 64 64" fill="none">
+          <rect x="8" y="4" width="40" height="52" rx="5" stroke="currentColor" stroke-width="2.5"/>
+          <line x1="18" y1="20" x2="38" y2="20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="18" y1="29" x2="34" y2="29" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+          <path d="M18 40 C21 36 24 36 27 40 C30 44 33 44 36 40" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        </svg>
+        <h3>No forms yet</h3>
+        <p>Create your first form to start collecting responses.</p>
+        <a routerLink="/create-form" class="btn btn-primary" style="margin-top:0.5rem">Create a Form</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h2 class="card-title">Recent Activity</h2>
+      </div>
+      <div class="empty-state">
+        <svg class="empty-icon" viewBox="0 0 64 64" fill="none">
+          <circle cx="32" cy="32" r="26" stroke="currentColor" stroke-width="2.5"/>
+          <path d="M32 18 L32 34 L42 40" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <h3>No recent activity</h3>
+        <p>Activity from your forms and surveys will appear here.</p>
+      </div>
+    </div>
+
+  </div>
+
+</div>

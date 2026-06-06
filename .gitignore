@@ -1,0 +1,38 @@
+# Build outputs
+bin/
+obj/
+dist/
+out/
+
+# Node
+node_modules/
+npm-debug.log*
+
+# .NET
+*.user
+*.suo
+.vs/
+*.userprefs
+
+# Environment / secrets — never commit credentials
+# appsettings.Development.json is safe (no passwords); use 'dotnet user-secrets' for secrets
+*.env
+*.env.local
+secrets.json
+
+# Tooling
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# EF Core migrations (keep migrations, exclude snapshots if desired)
+# Uncomment to exclude:
+# **/Migrations/
+
+# Test results
+TestResults/
+coverage/
+
+# Angular cache
+.angular/

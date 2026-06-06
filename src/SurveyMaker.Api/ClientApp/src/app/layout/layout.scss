@@ -1,0 +1,131 @@
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+// ── Header ────────────────────────────────────────────────────────────────
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: var(--header-height);
+  background: linear-gradient(135deg, var(--c-deep) 0%, #06506e 100%);
+  box-shadow: 0 2px 12px rgba(2, 48, 71, 0.35);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  height: 100%;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+// ── Brand ──────────────────────────────────────────────────────────────────
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-shrink: 0;
+  text-decoration: none;
+
+  &:focus-visible { outline: 2px solid var(--c-bright); border-radius: 4px; }
+}
+
+.brand-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+}
+
+.brand-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--c-white);
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+// ── Navigation ─────────────────────────────────────────────────────────────
+.main-nav {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex: 1;
+  justify-content: center;
+
+  a {
+    padding: 0.45rem 0.8rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: rgba(255,255,255,0.75);
+    border-radius: var(--radius-sm);
+    transition: background 0.15s, color 0.15s;
+    white-space: nowrap;
+
+    &:hover {
+      color: var(--c-white);
+      background: rgba(255,255,255,0.1);
+    }
+
+    &.active {
+      color: var(--c-white);
+      background: rgba(0, 180, 216, 0.25);
+      border-bottom: 2px solid var(--c-bright);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--c-bright);
+      outline-offset: 2px;
+    }
+  }
+}
+
+// ── User menu ──────────────────────────────────────────────────────────────
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-shrink: 0;
+}
+
+.user-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--c-teal), var(--c-bright));
+  color: var(--c-white);
+  font-size: 0.8rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.2);
+}
+
+.user-name {
+  font-size: 0.875rem;
+  color: rgba(255,255,255,0.85);
+  font-weight: 500;
+  white-space: nowrap;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.sign-out-btn {
+  font-size: 0.8rem;
+  padding: 0.35rem 0.85rem;
+}
+
+// ── Main content ───────────────────────────────────────────────────────────
+.app-content {
+  flex: 1;
+  background: var(--c-surface);
+}

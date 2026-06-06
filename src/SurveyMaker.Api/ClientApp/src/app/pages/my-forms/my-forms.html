@@ -1,0 +1,28 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div>
+      <h1 class="page-title">My Forms</h1>
+      <p class="page-subtitle">Build and manage your survey forms.</p>
+    </div>
+    <a routerLink="/create-form" class="btn btn-accent">
+      <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"/></svg>
+      New Form
+    </a>
+  </div>
+
+  <div class="card">
+    <div class="empty-state">
+      <svg class="empty-icon" viewBox="0 0 64 64" fill="none">
+        <rect x="8" y="4" width="40" height="52" rx="5" stroke="currentColor" stroke-width="2.5"/>
+        <line x1="18" y1="20" x2="38" y2="20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="18" y1="29" x2="34" y2="29" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M18 40 C21 36 24 36 27 40 C30 44 33 44 36 40" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+        <circle cx="50" cy="50" r="12" fill="var(--c-teal)"/>
+        <path d="M45 50 L49 54 L55 46" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <h3>You haven't created any forms yet</h3>
+      <p>Forms let you collect answers to your questions. Create one to get started.</p>
+      <a routerLink="/create-form" class="btn btn-primary" style="margin-top: 0.5rem">Create Your First Form</a>
+    </div>
+  </div>
+</div>
