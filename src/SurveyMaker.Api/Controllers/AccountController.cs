@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -12,7 +11,8 @@ namespace SurveyMaker.Api.Controllers;
 [Route("api/[controller]")]
 public class AccountController(
     SignInManager<ApplicationUser> signInManager,
-    UserManager<ApplicationUser> userManager) : ControllerBase
+    UserManager<ApplicationUser> userManager,
+    ILogger<AccountController> logger) : ControllerBase
 {
     [HttpGet("login")]
     public IActionResult Login([FromQuery] string returnUrl = "/")
@@ -33,46 +33,80 @@ public class AccountController(
 
         var info = await signInManager.GetExternalLoginInfoAsync();
         if (info is null)
+        {
+            logger.LogWarning("Google callback received but no external login info found (correlation failure or direct navigation).");
             return Redirect("/");
+        }
 
-        // Try signing in with an existing linked account
-        var result = await signInManager.ExternalLoginSignInAsync(
+        // ── Path 1: existing account with Google already linked ──────────────
+        var signInResult = await signInManager.ExternalLoginSignInAsync(
             info.LoginProvider, info.ProviderKey, isPersistent: false, bypassTwoFactor: true);
 
-        if (result.Succeeded)
+        if (signInResult.Succeeded)
         {
-            await UpdateLastLogin(info.ProviderKey, info.LoginProvider);
+            logger.LogInformation("User {Key} signed in via existing Google login.", info.ProviderKey);
+            await UpdateLastLogin(info.LoginProvider, info.ProviderKey);
             return Redirect(returnUrl);
         }
 
-        // First-time login — create account from Google profile
-        var email = info.Principal.FindFirstValue(ClaimTypes.Email);
-        if (string.IsNullOrEmpty(email))
-            return Redirect("/");
-
-        var user = new ApplicationUser
+        if (signInResult.IsLockedOut)
         {
-            UserName = email,
-            Email = email,
-            EmailConfirmed = true,
-            DisplayName = info.Principal.FindFirstValue(ClaimTypes.Name),
-            CreatedAt = DateTime.UtcNow,
-            LastLoginAt = DateTime.UtcNow
-        };
-
-        var createResult = await userManager.CreateAsync(user);
-        if (!createResult.Succeeded)
-        {
-            // Log errors without exposing internal details to the client
-            foreach (var error in createResult.Errors)
-                ModelState.AddModelError(string.Empty, error.Description);
-
+            logger.LogWarning("User {Key} attempted login but account is locked out.", info.ProviderKey);
             return Redirect("/");
         }
 
-        await userManager.AddLoginAsync(user, info);
-        await signInManager.SignInAsync(user, isPersistent: false);
+        var email = info.Principal.FindFirstValue(ClaimTypes.Email);
+        if (string.IsNullOrEmpty(email))
+        {
+            logger.LogWarning("Google login for key {Key} did not include an email claim.", info.ProviderKey);
+            return Redirect("/");
+        }
 
+        // ── Path 2: account exists but Google login not yet linked ────────────
+        var existingUser = await userManager.FindByEmailAsync(email);
+        if (existingUser is not null)
+        {
+            logger.LogInformation("Linking Google login to existing account for {Email}.", email);
+
+            var addLoginResult = await userManager.AddLoginAsync(existingUser, info);
+            if (!addLoginResult.Succeeded)
+            {
+                logger.LogError("Failed to link Google login for {Email}: {Errors}",
+                    email, string.Join(", ", addLoginResult.Errors.Select(e => e.Description)));
+                return Redirect("/");
+            }
+
+            existingUser.LastLoginAt = DateTime.UtcNow;
+            await userManager.UpdateAsync(existingUser);
+            await signInManager.SignInAsync(existingUser, isPersistent: false);
+            return Redirect(returnUrl);
+        }
+
+        // ── Path 3: brand-new user ────────────────────────────────────────────
+        logger.LogInformation("Creating new account for {Email}.", email);
+
+        var newUser = new ApplicationUser
+        {
+            UserName    = email,
+            Email       = email,
+            EmailConfirmed = true,
+            DisplayName = info.Principal.FindFirstValue(ClaimTypes.Name),
+            CreatedAt   = DateTime.UtcNow,
+            LastLoginAt = DateTime.UtcNow
+        };
+
+        var createResult = await userManager.CreateAsync(newUser);
+        if (!createResult.Succeeded)
+        {
+            logger.LogError("Failed to create account for {Email}: {Errors}",
+                email, string.Join(", ", createResult.Errors.Select(e => e.Description)));
+            return Redirect("/");
+        }
+
+        await userManager.AddLoginAsync(newUser, info);
+        await signInManager.SignInAsync(newUser, isPersistent: false);
+
+        logger.LogInformation("New account created and signed in for {Email}.", email);
         return Redirect(returnUrl);
     }
 
@@ -85,7 +119,7 @@ public class AccountController(
         return Ok(new
         {
             isAuthenticated = true,
-            name = User.FindFirstValue(ClaimTypes.Name) ?? User.FindFirstValue(ClaimTypes.Email),
+            name  = User.FindFirstValue(ClaimTypes.Name) ?? User.FindFirstValue(ClaimTypes.Email),
             email = User.FindFirstValue(ClaimTypes.Email)
         });
     }
@@ -98,7 +132,7 @@ public class AccountController(
         return Ok();
     }
 
-    private async Task UpdateLastLogin(string providerKey, string loginProvider)
+    private async Task UpdateLastLogin(string loginProvider, string providerKey)
     {
         var user = await userManager.FindByLoginAsync(loginProvider, providerKey);
         if (user is not null)
