@@ -127,8 +127,12 @@ public class FormsController(SurveyMakerDbContext db) : ControllerBase
             .FirstOrDefaultAsync(f => f.FormId == formId && f.FormCreatorEmail == UserEmail);
         if (form is null) return NotFound();
 
+        if (!string.IsNullOrWhiteSpace(request.FormName))
+            form.FormName = request.FormName.Trim();
+        form.Description    = request.Description?.Trim();
         form.RandomizeOrder = request.RandomizeOrder;
         form.Quota          = request.Quota > 0 ? request.Quota : null;
+        form.Published      = request.Published;
         form.UpdatedAt      = DateTime.UtcNow;
 
         await db.SaveChangesAsync();
@@ -222,6 +226,33 @@ public class FormsController(SurveyMakerDbContext db) : ControllerBase
         return Ok(new { questionId = question.QuestionId, order = question.Order });
     }
 
+    // ── Update question ───────────────────────────────────────────────────────
+
+    [HttpPut("{formId:guid}/sections/{sectionId:int}/questions/{questionId:int}")]
+    public async Task<IActionResult> UpdateQuestion(
+        Guid formId, int sectionId, int questionId, [FromBody] AddQuestionRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.Text))
+            return BadRequest(new { error = "Question text is required." });
+
+        var question = await db.Questions
+            .Include(q => q.Section)
+                .ThenInclude(s => s.Form)
+            .FirstOrDefaultAsync(q => q.QuestionId == questionId
+                                   && q.SectionId == sectionId
+                                   && q.Section.FormId == formId
+                                   && q.Section.Form.FormCreatorEmail == UserEmail);
+        if (question is null) return NotFound();
+
+        question.Text               = request.Text.Trim();
+        question.QuestionTypeId     = request.QuestionTypeId;
+        question.Order              = request.Order > 0 ? request.Order : question.Order;
+        question.QuestionAttributes = request.QuestionAttributes;
+
+        await db.SaveChangesAsync();
+        return Ok();
+    }
+
     // ── Remove question ───────────────────────────────────────────────────────
 
     [HttpDelete("{formId:guid}/sections/{sectionId:int}/questions/{questionId:int}")]
@@ -246,4 +277,4 @@ public class FormsController(SurveyMakerDbContext db) : ControllerBase
 public record CreateFormRequest(string FormName, string? Description, int SecurityTypeId = 1);
 public record AddQuestionRequest(int QuestionTypeId, string Text, int Order, string? QuestionAttributes);
 public record AddSectionRequest(string? SectionName, int Order);
-public record PatchFormRequest(bool RandomizeOrder, int? Quota);
+public record PatchFormRequest(string? FormName, string? Description, bool RandomizeOrder, int? Quota, bool Published);

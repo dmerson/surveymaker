@@ -16,9 +16,11 @@
         My Forms
       </a>
       <div class="editor-title-row">
-        <div>
-          <h1 class="editor-title">{{ f.formName }}</h1>
-          @if (f.description) { <p class="editor-subtitle">{{ f.description }}</p> }
+        <div class="editor-name-block">
+          <input class="editor-title-input" type="text" placeholder="Form name…"
+            [ngModel]="fsFormName()" (ngModelChange)="fsFormName.set($event)" />
+          <input class="editor-desc-input" type="text" placeholder="Add a description… (optional)"
+            [ngModel]="fsDescription()" (ngModelChange)="fsDescription.set($event)" />
         </div>
         <button class="btn-delete-form" (click)="showDeleteConfirm.set(true)">
           <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
@@ -32,8 +34,14 @@
     <!-- ── Settings row ──────────────────────────────────────────── -->
     <div class="settings-card">
       <label class="setting-toggle">
+        <input type="checkbox" [ngModel]="fsPublished()" (ngModelChange)="fsPublished.set($event)" />
+        <span class="published-label" [class.is-published]="fsPublished()">
+          {{ fsPublished() ? 'Published' : 'Draft' }}
+        </span>
+      </label>
+      <label class="setting-toggle">
         <input type="checkbox" [ngModel]="fsRandomize()" (ngModelChange)="fsRandomize.set($event)" />
-        <span>Randomize question order</span>
+        <span>Randomize order</span>
       </label>
       <div class="setting-quota">
         <label class="setting-label">Response quota</label>
@@ -61,14 +69,22 @@
         @if (section.questions.length > 0) {
           <div class="question-list">
             @for (q of section.questions; track q.questionId) {
-              <div class="question-row">
+              <div class="question-row" [class.editing]="aqEditingQuestionId() === q.questionId">
                 <span class="q-num">{{ q.order }}</span>
                 <div class="q-body">
                   <span class="q-text">{{ q.text }}</span>
                   <span class="q-badge">{{ q.questionTypeName }}</span>
                 </div>
+                <button class="q-edit" title="Edit question"
+                  (click)="editQuestion(section, q)"
+                  [disabled]="aqEditingQuestionId() !== null && aqEditingQuestionId() !== q.questionId">
+                  <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                  </svg>
+                </button>
                 <button class="q-remove" title="Remove question"
-                  (click)="removeQuestion(section, q.questionId)">
+                  (click)="removeQuestion(section, q.questionId)"
+                  [disabled]="aqEditingQuestionId() === q.questionId">
                   <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
                     <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
                   </svg>
@@ -78,9 +94,20 @@
           </div>
         }
 
-        <!-- Add Question panel (open for active section) -->
+        <!-- Add / Edit Question panel (open for active section) -->
         @if (aqSectionId() === section.sectionId) {
           <div class="aq-panel">
+
+            @if (aqEditingQuestionId() !== null) {
+              <div class="aq-edit-banner">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                </svg>
+                Editing question
+                <button class="btn-cancel-edit" (click)="cancelEdit()">Cancel</button>
+              </div>
+            }
+
             <div class="aq-top-row">
               <div class="aq-field aq-type">
                 <label class="aq-label">Question Type <span class="req">*</span></label>
@@ -180,9 +207,10 @@
                   </div>
                   <div class="scored-add-row">
                     <input class="aq-input" type="text" placeholder="Option text"
-                      [ngModel]="aqPendText()" (ngModelChange)="aqPendText.set($event)" />
+                      [ngModel]="aqPendText()" (ngModelChange)="aqPendText.set($event)"
+                      (keydown.enter)="addScoredOption()" />
                     <input class="aq-input scored-val-input" type="number" placeholder="Value"
-                      [ngModel]="aqPendVal()" (ngModelChange)="aqPendVal.set($event)"
+                      [ngModel]="aqPendVal()" (ngModelChange)="aqPendVal.set('' + $event)"
                       (keydown.enter)="addScoredOption()" />
                     <button class="btn-add-opt" type="button" (click)="addScoredOption()">Add</button>
                   </div>
@@ -209,10 +237,17 @@
             }
 
             <div class="aq-actions">
+              @if (aqEditingQuestionId() !== null) {
+                <button class="btn btn-outline btn-sm" (click)="cancelEdit()" [disabled]="aqSaving()">Cancel</button>
+              }
               <button class="btn btn-accent"
                 [disabled]="aqSaving() || aqTypeId() === 0"
                 (click)="saveQuestion()">
-                @if (aqSaving()) { Saving… } @else { Save Question }
+                @if (aqSaving()) {
+                  {{ aqEditingQuestionId() !== null ? 'Updating…' : 'Saving…' }}
+                } @else {
+                  {{ aqEditingQuestionId() !== null ? 'Update Question' : 'Save Question' }}
+                }
               </button>
             </div>
           </div>
@@ -270,7 +305,7 @@
   @if (showDeleteConfirm()) {
     <div class="modal-backdrop" (click)="showDeleteConfirm.set(false)">
       <div class="modal" (click)="$event.stopPropagation()">
-        <h3 class="modal-title">Delete "{{ f.formName }}"?</h3>
+        <h3 class="modal-title">Delete "{{ fsFormName() }}"?</h3>
         <p class="modal-body">
           This will permanently remove the form, all its questions, and all collected answers.
           This action cannot be undone.

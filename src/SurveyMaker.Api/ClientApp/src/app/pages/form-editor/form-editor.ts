@@ -17,8 +17,9 @@ export class FormEditor implements OnInit {
   loading       = signal(true);
   loadError     = signal('');
 
-  // ── Add Question state ────────────────────────────────────────────────────
-  aqSectionId  = signal<number | null>(null);  // null = panel closed
+  // ── Add/Edit Question state ───────────────────────────────────────────────
+  aqSectionId         = signal<number | null>(null);  // null = panel closed
+  aqEditingQuestionId = signal<number | null>(null);  // null = adding new
   aqTypeId     = signal(0);
   aqText       = signal('');
   aqOrder      = signal(1);
@@ -32,7 +33,7 @@ export class FormEditor implements OnInit {
   // option-list types
   aqOptions    = signal<string[]>([]);
   aqPendOpt    = signal('');
-  // scored option types
+  // scored option types (Checkbox/Radio/Dropdown with values)
   aqScored     = signal<{ text: string; value: string }[]>([]);
   aqPendText   = signal('');
   aqPendVal    = signal('');
@@ -49,11 +50,14 @@ export class FormEditor implements OnInit {
   asSaving = signal(false);
   asError  = signal('');
 
-  // ── Form settings ─────────────────────────────────────────────────────────
-  fsRandomize    = signal(false);
-  fsQuota        = signal('');
-  fsSaving       = signal(false);
-  fsSaved        = signal(false);
+  // ── Form settings (editable) ──────────────────────────────────────────────
+  fsFormName    = signal('');
+  fsDescription = signal('');
+  fsPublished   = signal(false);
+  fsRandomize   = signal(false);
+  fsQuota       = signal('');
+  fsSaving      = signal(false);
+  fsSaved       = signal(false);
 
   // ── Delete form ───────────────────────────────────────────────────────────
   showDeleteConfirm = signal(false);
@@ -85,6 +89,9 @@ export class FormEditor implements OnInit {
     this.formService.getDetail(formId).subscribe({
       next: detail => {
         this.form.set(detail);
+        this.fsFormName.set(detail.formName);
+        this.fsDescription.set(detail.description ?? '');
+        this.fsPublished.set(detail.published);
         this.fsRandomize.set(detail.randomizeOrder);
         this.fsQuota.set(detail.quota ? String(detail.quota) : '');
         if (detail.sections.length > 0) {
@@ -103,12 +110,62 @@ export class FormEditor implements OnInit {
     });
   }
 
-  // ── Add Question ──────────────────────────────────────────────────────────
+  // ── Add / Edit Question ───────────────────────────────────────────────────
 
   openAddPanel(section: SectionDetail): void {
     this.aqSectionId.set(section.sectionId);
+    this.aqEditingQuestionId.set(null);
     this.aqOrder.set(section.questions.length + 1);
     this.resetAqFields();
+  }
+
+  editQuestion(section: SectionDetail, q: QuestionDetail): void {
+    this.aqSectionId.set(section.sectionId);
+    this.aqEditingQuestionId.set(q.questionId);
+    this.aqTypeId.set(q.questionTypeId);
+    this.aqText.set(q.text);
+    this.aqOrder.set(q.order);
+    this.aqRequired.set(false);
+    this.aqMinLen.set(''); this.aqMaxLen.set('');
+    this.aqMinVal.set(''); this.aqMaxVal.set('');
+    this.aqOptions.set([]); this.aqPendOpt.set('');
+    this.aqScored.set([]); this.aqPendText.set(''); this.aqPendVal.set('');
+    this.aqScale.set(5);
+    this.aqError.set('');
+    this.loadAttributes(q.questionAttributes, q.questionTypeId);
+  }
+
+  cancelEdit(): void {
+    this.aqEditingQuestionId.set(null);
+    this.resetAqFields();
+  }
+
+  private loadAttributes(attrsJson: string | undefined, typeId: number): void {
+    if (!attrsJson || attrsJson === '{}') return;
+    try {
+      const attrs = JSON.parse(attrsJson);
+      if (attrs['required']) this.aqRequired.set(true);
+      if ([1, 2].includes(typeId)) {
+        if (attrs['min'] != null) this.aqMinLen.set(String(attrs['min']));
+        if (attrs['max'] != null) this.aqMaxLen.set(String(attrs['max']));
+      }
+      if ([3, 12, 14].includes(typeId)) {
+        if (attrs['min'] != null) this.aqMinVal.set(String(attrs['min']));
+        if (attrs['max'] != null) this.aqMaxVal.set(String(attrs['max']));
+      }
+      if ([4, 5, 6].includes(typeId) && Array.isArray(attrs['options'])) {
+        this.aqOptions.set(attrs['options'] as string[]);
+      }
+      if ([20, 21, 22].includes(typeId) && Array.isArray(attrs['options'])) {
+        this.aqScored.set(
+          (attrs['options'] as { text: string; value: number }[])
+            .map(o => ({ text: o.text, value: String(o.value) }))
+        );
+      }
+      if (typeId === 13 && attrs['scale'] != null) {
+        this.aqScale.set(attrs['scale'] as number);
+      }
+    } catch { /* ignore invalid JSON */ }
   }
 
   private resetAqFields(): void {
@@ -146,7 +203,8 @@ export class FormEditor implements OnInit {
 
   addScoredOption(): void {
     const text = this.aqPendText().trim();
-    const val  = this.aqPendVal().trim();
+    // number inputs emit a number; String() makes .trim() safe
+    const val  = String(this.aqPendVal()).trim();
     if (!text || !val) return;
     this.aqScored.update(opts => [...opts, { text, value: val }]);
     this.aqPendText.set(''); this.aqPendVal.set('');
@@ -156,31 +214,35 @@ export class FormEditor implements OnInit {
     this.aqScored.update(opts => opts.filter((_, idx) => idx !== i));
   }
 
-  private buildAttributes(): string | null {
+  private buildAttributes(): string {
     const f = this.typeFlags();
     const attrs: Record<string, unknown> = {};
 
     if (this.aqRequired()) attrs['required'] = true;
 
     if (f.hasMinMax) {
-      if (this.aqMinLen()) attrs['min'] = parseInt(this.aqMinLen(), 10);
-      if (this.aqMaxLen()) attrs['max'] = parseInt(this.aqMaxLen(), 10);
+      if (this.aqMinLen()) attrs['min'] = parseInt(String(this.aqMinLen()), 10);
+      if (this.aqMaxLen()) attrs['max'] = parseInt(String(this.aqMaxLen()), 10);
     }
     if (f.hasNumberRange) {
-      if (this.aqMinVal()) attrs['min'] = parseFloat(this.aqMinVal());
-      if (this.aqMaxVal()) attrs['max'] = parseFloat(this.aqMaxVal());
+      if (this.aqMinVal()) attrs['min'] = parseFloat(String(this.aqMinVal()));
+      if (this.aqMaxVal()) attrs['max'] = parseFloat(String(this.aqMaxVal()));
     }
     if (f.hasOptions && this.aqOptions().length > 0) {
       attrs['options'] = this.aqOptions();
     }
     if (f.hasScored && this.aqScored().length > 0) {
-      attrs['options'] = this.aqScored().map(o => ({ text: o.text, value: parseFloat(o.value) }));
+      attrs['options'] = this.aqScored().map(o => ({
+        text: o.text,
+        value: parseFloat(o.value)
+      }));
     }
     if (f.hasScale) {
       attrs['scale'] = this.aqScale();
     }
 
-    return Object.keys(attrs).length > 0 ? JSON.stringify(attrs) : null;
+    // Always store valid JSON; never null
+    return JSON.stringify(attrs);
   }
 
   saveQuestion(): void {
@@ -188,52 +250,81 @@ export class FormEditor implements OnInit {
     if (!this.aqText().trim()) { this.aqError.set('Question text is required.'); return; }
 
     const sectionId = this.aqSectionId()!;
-    const section   = this.form()!.sections.find(s => s.sectionId === sectionId)!;
     const attrs     = this.buildAttributes();
+    const editId    = this.aqEditingQuestionId();
 
     this.aqSaving.set(true);
     this.aqError.set('');
 
-    this.formService.addQuestion(
-      this.form()!.formId,
-      sectionId,
-      this.aqTypeId(),
-      this.aqText().trim(),
-      this.aqOrder(),
-      attrs
-    ).subscribe({
-      next: ({ questionId, order }) => {
-        const typeName = this.questionTypes().find(t => t.questionTypeId === this.aqTypeId())?.questionTypeName ?? '';
-        const newQ: QuestionDetail = {
-          questionId,
-          order,
-          text: this.aqText().trim(),
-          questionTypeId: this.aqTypeId(),
-          questionTypeName: typeName,
-          questionAttributes: attrs ?? undefined
-        };
+    if (editId !== null) {
+      this.formService.updateQuestion(
+        this.form()!.formId, sectionId, editId,
+        this.aqTypeId(), this.aqText().trim(), this.aqOrder(), attrs
+      ).subscribe({
+        next: () => {
+          const typeName = this.questionTypes().find(t => t.questionTypeId === this.aqTypeId())?.questionTypeName ?? '';
+          const updated = { ...this.form()! };
+          const sec = updated.sections.find(s => s.sectionId === sectionId)!;
+          sec.questions = sec.questions.map(q =>
+            q.questionId === editId
+              ? { ...q, text: this.aqText().trim(), questionTypeId: this.aqTypeId(), questionTypeName: typeName, order: this.aqOrder(), questionAttributes: attrs }
+              : q
+          );
+          this.form.set(updated);
+          this.aqEditingQuestionId.set(null);
+          this.resetAqFields();
+          this.aqSaving.set(false);
+        },
+        error: () => {
+          this.aqError.set('Failed to update question.');
+          this.aqSaving.set(false);
+        }
+      });
+    } else {
+      this.formService.addQuestion(
+        this.form()!.formId,
+        sectionId,
+        this.aqTypeId(),
+        this.aqText().trim(),
+        this.aqOrder(),
+        attrs
+      ).subscribe({
+        next: ({ questionId, order }) => {
+          const typeName = this.questionTypes().find(t => t.questionTypeId === this.aqTypeId())?.questionTypeName ?? '';
+          const newQ: QuestionDetail = {
+            questionId,
+            order,
+            text: this.aqText().trim(),
+            questionTypeId: this.aqTypeId(),
+            questionTypeName: typeName,
+            questionAttributes: attrs
+          };
 
-        const updated = { ...this.form()! };
-        const sec = updated.sections.find(s => s.sectionId === sectionId)!;
-        sec.questions = [...sec.questions, newQ];
-        this.form.set(updated);
+          const updated = { ...this.form()! };
+          const sec = updated.sections.find(s => s.sectionId === sectionId)!;
+          sec.questions = [...sec.questions, newQ];
+          this.form.set(updated);
 
-        // Reset panel for next question
-        this.aqOrder.set(sec.questions.length + 1);
-        this.resetAqFields();
-        this.aqSaving.set(false);
-      },
-      error: () => {
-        this.aqError.set('Failed to save question. Please try again.');
-        this.aqSaving.set(false);
-      }
-    });
+          this.aqOrder.set(sec.questions.length + 1);
+          this.resetAqFields();
+          this.aqSaving.set(false);
+        },
+        error: () => {
+          this.aqError.set('Failed to save question. Please try again.');
+          this.aqSaving.set(false);
+        }
+      });
+    }
   }
 
   removeQuestion(section: SectionDetail, questionId: number): void {
     this.formService.removeQuestion(this.form()!.formId, section.sectionId, questionId)
       .subscribe({
         next: () => {
+          if (this.aqEditingQuestionId() === questionId) {
+            this.aqEditingQuestionId.set(null);
+            this.resetAqFields();
+          }
           const updated = { ...this.form()! };
           const sec = updated.sections.find(s => s.sectionId === section.sectionId)!;
           sec.questions = sec.questions.filter(q => q.questionId !== questionId);
@@ -287,10 +378,24 @@ export class FormEditor implements OnInit {
 
     this.formService.patchSettings(
       this.form()!.formId,
+      this.fsFormName(),
+      this.fsDescription() || undefined,
       this.fsRandomize(),
-      isNaN(quota) || quota <= 0 ? null : quota
+      isNaN(quota) || quota <= 0 ? null : quota,
+      this.fsPublished()
     ).subscribe({
-      next: () => { this.fsSaving.set(false); this.fsSaved.set(true); },
+      next: () => {
+        const f = this.form()!;
+        this.form.set({
+          ...f,
+          formName:      this.fsFormName(),
+          description:   this.fsDescription() || undefined,
+          published:     this.fsPublished(),
+          randomizeOrder: this.fsRandomize(),
+        });
+        this.fsSaving.set(false);
+        this.fsSaved.set(true);
+      },
       error: () => { this.fsSaving.set(false); }
     });
   }

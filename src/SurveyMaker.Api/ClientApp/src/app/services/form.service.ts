@@ -19,8 +19,32 @@ export class FormService {
     return this.http.get<FormDetail>(`/api/forms/${formId}`);
   }
 
-  patchSettings(formId: string, randomizeOrder: boolean, quota: number | null): Observable<void> {
-    return this.http.patch<void>(`/api/forms/${formId}`, { randomizeOrder, quota });
+  patchSettings(
+    formId: string,
+    formName: string,
+    description: string | undefined,
+    randomizeOrder: boolean,
+    quota: number | null,
+    published: boolean
+  ): Observable<void> {
+    return this.http.patch<void>(`/api/forms/${formId}`, {
+      formName, description, randomizeOrder, quota, published
+    });
+  }
+
+  updateQuestion(
+    formId: string,
+    sectionId: number,
+    questionId: number,
+    questionTypeId: number,
+    text: string,
+    order: number,
+    questionAttributes: string
+  ): Observable<void> {
+    return this.http.put<void>(
+      `/api/forms/${formId}/sections/${sectionId}/questions/${questionId}`,
+      { questionTypeId, text, order, questionAttributes }
+    );
   }
 
   deleteForm(formId: string): Observable<void> {

@@ -32,8 +32,42 @@
   gap: 1rem;
 }
 
-.editor-title    { font-size: 1.5rem; font-weight: 700; color: var(--c-deep); margin: 0 0 0.2rem; }
-.editor-subtitle { color: var(--c-text-light); margin: 0; font-size: 0.9rem; }
+.editor-name-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+}
+
+.editor-title-input {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--c-deep);
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 0 0 2px;
+  background: transparent;
+  width: 100%;
+  font-family: inherit;
+  &:hover { border-bottom-color: var(--c-border); }
+  &:focus { outline: none; border-bottom-color: var(--c-teal); }
+}
+
+.editor-desc-input {
+  font-size: 0.9rem;
+  color: var(--c-text-light);
+  border: none;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  padding: 0 0 2px;
+  background: transparent;
+  width: 100%;
+  font-family: inherit;
+  &:hover { border-bottom-color: var(--c-border); }
+  &:focus { outline: none; border-bottom-color: var(--c-teal); }
+  &::placeholder { color: var(--c-text-light); opacity: 0.55; }
+}
 
 .btn-delete-form {
   display: inline-flex;
@@ -73,6 +107,11 @@
   font-size: 0.875rem;
   color: var(--c-text);
   cursor: pointer;
+}
+
+.published-label {
+  font-weight: 500;
+  &.is-published { color: #065f46; }
 }
 
 .setting-quota {
@@ -121,6 +160,12 @@
   background: var(--c-surface);
   border: 1px solid var(--c-border);
   border-radius: var(--radius-sm);
+  transition: border-color 0.15s, background 0.15s;
+
+  &.editing {
+    border-color: var(--c-teal);
+    background: var(--c-foam);
+  }
 }
 
 .q-num { font-size: 0.78rem; font-weight: 700; color: var(--c-teal); min-width: 1.2rem; }
@@ -132,10 +177,47 @@
   background: var(--c-foam); border-radius: 100px; padding: 0.12rem 0.55rem; white-space: nowrap;
 }
 
+.q-edit {
+  background: none; border: none; cursor: pointer; color: var(--c-text-light);
+  padding: 0.25rem; border-radius: 4px; display: flex;
+  &:hover { color: var(--c-teal); background: var(--c-foam); }
+  &:disabled { opacity: 0.35; cursor: not-allowed; }
+}
+
 .q-remove {
   background: none; border: none; cursor: pointer; color: var(--c-text-light);
   padding: 0.25rem; border-radius: 4px; display: flex;
   &:hover { color: #b91c1c; background: #fef2f2; }
+  &:disabled { opacity: 0.35; cursor: not-allowed; }
+}
+
+// ── Edit banner ───────────────────────────────────────────────────────
+.aq-edit-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--c-teal);
+  background: var(--c-foam);
+  border: 1px solid var(--c-teal);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.btn-cancel-edit {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--c-teal);
+  font-family: inherit;
+  text-decoration: underline;
+  padding: 0;
+  &:hover { color: var(--c-ocean); }
 }
 
 // ── Add Question panel ────────────────────────────────────────────────
