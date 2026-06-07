@@ -1,0 +1,48 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div>
+      <a [routerLink]="['/forms', formId(), 'answers']" class="back-link">← Responses</a>
+      <h1 class="page-title">{{ formName() || 'All Answers' }}</h1>
+      <p class="page-subtitle">
+        {{ rows().length }} respondent{{ rows().length !== 1 ? 's' : '' }} ·
+        {{ questions().length }} question{{ questions().length !== 1 ? 's' : '' }}
+      </p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-state">Loading…</div>
+
+  } @else if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+
+  } @else if (rows().length === 0) {
+    <div class="empty-card">No responses yet.</div>
+
+  } @else {
+    <div class="grid-scroll">
+      <table class="grid-table">
+        <thead>
+          <tr>
+            <th class="col-respondent">Respondent</th>
+            <th class="col-date">Date</th>
+            @for (q of questions(); track q.questionId) {
+              <th [title]="q.text">{{ q.text | slice:0:35 }}{{ q.text.length > 35 ? '…' : '' }}</th>
+            }
+          </tr>
+        </thead>
+        <tbody>
+          @for (row of rows(); track row.submissionId) {
+            <tr>
+              <td class="col-respondent">{{ row.userEmail ?? 'Anonymous' }}</td>
+              <td class="col-date">{{ row.submittedAt ? (row.submittedAt | slice:0:10) : '—' }}</td>
+              @for (cell of row.cells; track $index) {
+                <td [title]="cell ?? ''" class="col-answer">{{ cell ?? '' }}</td>
+              }
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

@@ -11,6 +11,7 @@ import { FormEditor } from './pages/form-editor/form-editor';
 import { TakeSurvey } from './pages/take-survey/take-survey';
 import { FormAnswers } from './pages/form-answers/form-answers';
 import { ViewSubmission } from './pages/view-submission/view-submission';
+import { AllAnswers } from './pages/all-answers/all-answers';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', component: Home },
@@ -26,6 +27,7 @@ export const routes: Routes = [
       { path: 'forms/:id/edit',                              component: FormEditor },
       { path: 'forms/:id/answers',                           component: FormAnswers },
       { path: 'forms/:id/answers/:submissionId',             component: ViewSubmission },
+      { path: 'forms/:id/all-answers',                       component: AllAnswers },
       { path: 'my-surveys',                                  component: MySurveys },
       { path: 'public-survey',                               component: PublicSurvey },
     ]

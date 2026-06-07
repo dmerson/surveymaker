@@ -240,6 +240,57 @@ public class FormsController(SurveyMakerDbContext db) : ControllerBase
         });
     }
 
+    // ── Answer grid (all responses × all questions) ───────────────────────────
+
+    [HttpGet("{formId:guid}/grid")]
+    public async Task<IActionResult> GetAnswerGrid(Guid formId)
+    {
+        var form = await db.Forms
+            .Where(f => f.FormId == formId && f.FormCreatorEmail == UserEmail)
+            .Select(f => new { f.FormId, f.FormName })
+            .FirstOrDefaultAsync();
+        if (form is null) return NotFound();
+
+        var questions = await db.Questions
+            .Where(q => q.Section.FormId == formId)
+            .OrderBy(q => q.Section.Order)
+            .ThenBy(q => q.Order)
+            .Select(q => new { questionId = q.QuestionId, text = q.Text })
+            .ToListAsync();
+
+        var questionIds = questions.Select(q => q.questionId).ToList();
+
+        var submissions = await db.FormSubmissions
+            .Where(s => s.FormId == formId)
+            .OrderBy(s => s.SubmittedAt ?? s.StartedAt)
+            .Select(s => new
+            {
+                submissionId = s.SubmissionId,
+                userEmail    = s.UserEmail,
+                submittedAt  = s.SubmittedAt,
+                answers      = s.Answers
+                    .Where(a => questionIds.Contains(a.QuestionId))
+                    .Select(a => new { a.QuestionId, a.AnswerScalar })
+                    .ToList()
+            })
+            .ToListAsync();
+
+        var rows = submissions.Select(s =>
+        {
+            var map = s.answers.ToDictionary(a => a.QuestionId, a => a.AnswerScalar);
+            return new
+            {
+                s.submissionId,
+                s.userEmail,
+                s.submittedAt,
+                cells = questionIds.Select(qid =>
+                    map.TryGetValue(qid, out var v) ? v : null).ToList()
+            };
+        });
+
+        return Ok(new { formId = form.FormId, formName = form.FormName, questions, rows });
+    }
+
     // ── Add section ───────────────────────────────────────────────────────────
 
     [HttpPost("{formId:guid}/sections")]

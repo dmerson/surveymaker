@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
   FormDetail, FormSummary, QuestionType, SectionDetail,
-  SubmissionsResponse, SubmissionDetail
+  SubmissionsResponse, SubmissionDetail, AnswerGrid
 } from '../models/form.model';
 
 @Injectable({ providedIn: 'root' })
@@ -88,5 +88,9 @@ export class FormService {
 
   getSubmission(formId: string, submissionId: string): Observable<SubmissionDetail> {
     return this.http.get<SubmissionDetail>(`/api/forms/${formId}/submissions/${submissionId}`);
+  }
+
+  getAnswerGrid(formId: string): Observable<AnswerGrid> {
+    return this.http.get<AnswerGrid>(`/api/forms/${formId}/grid`);
   }
 }

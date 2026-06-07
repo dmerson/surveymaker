@@ -50,6 +50,25 @@ export interface SubmissionQuestionDetail {
   answerJson?: string;
 }
 
+export interface AnswerGridQuestion {
+  questionId: number;
+  text: string;
+}
+
+export interface AnswerGridRow {
+  submissionId: string;
+  userEmail: string | null;
+  submittedAt: string | null;
+  cells: (string | null)[];
+}
+
+export interface AnswerGrid {
+  formId: string;
+  formName: string;
+  questions: AnswerGridQuestion[];
+  rows: AnswerGridRow[];
+}
+
 export interface FormDetail {
   formId: string;
   formName: string;
