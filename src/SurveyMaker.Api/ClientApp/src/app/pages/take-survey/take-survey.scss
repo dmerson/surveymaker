@@ -360,3 +360,18 @@
   display: block;
   width: 100%;
 }
+
+// ── Preview mode banner ───────────────────────────────────────────────
+.sv-preview-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  border-radius: var(--radius-sm, 6px);
+  color: #92400e;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.6rem 1rem;
+  margin-bottom: 1rem;
+}

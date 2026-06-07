@@ -37,6 +37,7 @@ export class TakeSurvey implements OnInit {
   loading        = signal(true);
   loadError      = signal('');
   accessDenied   = signal(false);
+  previewMode    = signal(false);
 
   // answer map: questionId → string (scalar) or string[] (multi-select)
   answers     = signal<Record<number, string | string[]>>({});
@@ -51,6 +52,7 @@ export class TakeSurvey implements OnInit {
 
   ngOnInit(): void {
     const formId = this.route.snapshot.paramMap.get('id')!;
+    this.previewMode.set(this.route.snapshot.queryParamMap.get('preview') === '1');
 
     this.surveyService.getSurvey(formId).subscribe({
       next: detail => {
