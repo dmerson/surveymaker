@@ -384,9 +384,10 @@ export class TakeSurvey implements OnInit {
 
     this.surveyService.submit(survey.formId, payload).subscribe({
       next: () => { this.submitting.set(false); this.submitted.set(true); },
-      error: () => {
+      error: (err) => {
         this.submitting.set(false);
-        this.submitError.set('Failed to submit. Please try again.');
+        const msg = err?.error?.error;
+        this.submitError.set(msg ?? 'Failed to submit. Please try again.');
       }
     });
   }
