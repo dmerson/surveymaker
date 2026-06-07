@@ -53,6 +53,135 @@
       </button>
     </div>
 
+    <!--
+      Shared question form fields — rendered in both the inline edit panel
+      and the bottom add-new panel via ngTemplateOutlet.
+    -->
+    <ng-template #aqFields>
+      <div class="aq-top-row">
+        <div class="aq-field aq-type">
+          <label class="aq-label">Question Type <span class="req">*</span></label>
+          <select class="aq-select"
+            [ngModel]="aqTypeId()"
+            (ngModelChange)="onTypeChange($event)">
+            <option value="0" disabled>Select type…</option>
+            @for (qt of questionTypes(); track qt.questionTypeId) {
+              <option [value]="qt.questionTypeId">{{ qt.questionTypeName }}</option>
+            }
+          </select>
+        </div>
+        <div class="aq-field aq-order">
+          <label class="aq-label">Order</label>
+          <input class="aq-input" type="number" min="1"
+            [ngModel]="aqOrder()" (ngModelChange)="aqOrder.set(+$event)" />
+        </div>
+        <label class="aq-required-toggle">
+          <input type="checkbox" [ngModel]="aqRequired()" (ngModelChange)="aqRequired.set($event)" />
+          Required
+        </label>
+      </div>
+
+      @if (aqTypeId() > 0) {
+        <div class="aq-field aq-text-field">
+          <label class="aq-label">Question Text <span class="req">*</span></label>
+          <input class="aq-input" type="text" placeholder="Enter your question…"
+            [ngModel]="aqText()" (ngModelChange)="aqText.set($event)"
+            (keydown.enter)="saveQuestion()" />
+        </div>
+
+        @if (typeFlags().hasMinMax) {
+          <div class="aq-row-2">
+            <div class="aq-field">
+              <label class="aq-label">Min Length</label>
+              <input class="aq-input" type="number" min="0" placeholder="0"
+                [ngModel]="aqMinLen()" (ngModelChange)="aqMinLen.set($event)" />
+            </div>
+            <div class="aq-field">
+              <label class="aq-label">Max Length</label>
+              <input class="aq-input" type="number" min="1" placeholder="No limit"
+                [ngModel]="aqMaxLen()" (ngModelChange)="aqMaxLen.set($event)" />
+            </div>
+          </div>
+        }
+
+        @if (typeFlags().hasNumberRange) {
+          <div class="aq-row-2">
+            <div class="aq-field">
+              <label class="aq-label">Min Value</label>
+              <input class="aq-input" type="number" placeholder="e.g. 1"
+                [ngModel]="aqMinVal()" (ngModelChange)="aqMinVal.set($event)" />
+            </div>
+            <div class="aq-field">
+              <label class="aq-label">Max Value</label>
+              <input class="aq-input" type="number" placeholder="e.g. 10"
+                [ngModel]="aqMaxVal()" (ngModelChange)="aqMaxVal.set($event)" />
+            </div>
+          </div>
+        }
+
+        @if (typeFlags().hasOptions) {
+          <div class="aq-field">
+            <label class="aq-label">Options</label>
+            <div class="options-list">
+              @for (opt of aqOptions(); track $index) {
+                <div class="option-chip">
+                  <span>{{ opt }}</span>
+                  <button type="button" (click)="removeOption($index)">×</button>
+                </div>
+              }
+            </div>
+            <div class="option-add-row">
+              <input class="aq-input" type="text" placeholder="Type an option and press Enter…"
+                [ngModel]="aqPendOpt()" (ngModelChange)="aqPendOpt.set($event)"
+                (keydown.enter)="addOption()" />
+              <button class="btn-add-opt" type="button" (click)="addOption()">Add</button>
+            </div>
+          </div>
+        }
+
+        @if (typeFlags().hasScored) {
+          <div class="aq-field">
+            <label class="aq-label">Options (Text + Score)</label>
+            <div class="options-list">
+              @for (opt of aqScored(); track $index) {
+                <div class="option-chip scored">
+                  <span>{{ opt.text }}</span>
+                  <span class="score-val">{{ opt.value }}</span>
+                  <button type="button" (click)="removeScoredOption($index)">×</button>
+                </div>
+              }
+            </div>
+            <div class="scored-add-row">
+              <input class="aq-input" type="text" placeholder="Option text"
+                [ngModel]="aqPendText()" (ngModelChange)="aqPendText.set($event)"
+                (keydown.enter)="addScoredOption()" />
+              <input class="aq-input scored-val-input" type="number" placeholder="Value"
+                [ngModel]="aqPendVal()" (ngModelChange)="aqPendVal.set('' + $event)"
+                (keydown.enter)="addScoredOption()" />
+              <button class="btn-add-opt" type="button" (click)="addScoredOption()">Add</button>
+            </div>
+          </div>
+        }
+
+        @if (typeFlags().hasScale) {
+          <div class="aq-field">
+            <label class="aq-label">Scale Points</label>
+            <div class="scale-btns">
+              @for (s of [5, 7, 10]; track s) {
+                <button type="button" class="scale-btn"
+                  [class.active]="aqScale() === s"
+                  (click)="aqScale.set(s)">{{ s }}</button>
+              }
+            </div>
+          </div>
+        }
+      }
+
+      @if (aqError()) {
+        <div class="aq-error">{{ aqError() }}</div>
+      }
+    </ng-template>
+
     <!-- ── Sections ───────────────────────────────────────────────── -->
     @for (section of f.sections; track section.sectionId) {
       <div class="section-card" [class.active]="aqSectionId() === section.sectionId">
@@ -69,190 +198,71 @@
         @if (section.questions.length > 0) {
           <div class="question-list">
             @for (q of section.questions; track q.questionId) {
-              <div class="question-row" [class.editing]="aqEditingQuestionId() === q.questionId">
-                <span class="q-num">{{ q.order }}</span>
-                <div class="q-body">
-                  <span class="q-text">{{ q.text }}</span>
-                  <span class="q-badge">{{ q.questionTypeName }}</span>
+              <!--
+                question-group wraps the row + its inline edit panel so they
+                collapse together with no gap between them.
+              -->
+              <div class="question-group">
+                <div class="question-row" [class.editing]="aqEditingQuestionId() === q.questionId">
+                  <span class="q-num">{{ q.order }}</span>
+                  <div class="q-body">
+                    <span class="q-text">{{ q.text }}</span>
+                    <span class="q-badge">{{ q.questionTypeName }}</span>
+                  </div>
+                  <button class="q-edit" title="Edit question"
+                    (click)="editQuestion(section, q)"
+                    [disabled]="aqEditingQuestionId() !== null && aqEditingQuestionId() !== q.questionId">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                      <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
+                    </svg>
+                  </button>
+                  <button class="q-remove" title="Remove question"
+                    (click)="removeQuestion(section, q.questionId)"
+                    [disabled]="aqEditingQuestionId() === q.questionId">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                      <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                  </button>
                 </div>
-                <button class="q-edit" title="Edit question"
-                  (click)="editQuestion(section, q)"
-                  [disabled]="aqEditingQuestionId() !== null && aqEditingQuestionId() !== q.questionId">
-                  <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
-                    <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
-                  </svg>
-                </button>
-                <button class="q-remove" title="Remove question"
-                  (click)="removeQuestion(section, q.questionId)"
-                  [disabled]="aqEditingQuestionId() === q.questionId">
-                  <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
-                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-                  </svg>
-                </button>
+
+                <!-- Inline edit panel — appears directly below the editing row -->
+                @if (aqEditingQuestionId() === q.questionId) {
+                  <div class="aq-inline-panel">
+                    <ng-container [ngTemplateOutlet]="aqFields"></ng-container>
+                    <div class="aq-actions">
+                      <button class="btn btn-outline btn-sm"
+                        (click)="cancelEdit()" [disabled]="aqSaving()">Cancel</button>
+                      <button class="btn btn-accent"
+                        [disabled]="aqSaving() || aqTypeId() === 0"
+                        (click)="saveQuestion()">
+                        @if (aqSaving()) { Updating… } @else { Update Question }
+                      </button>
+                    </div>
+                  </div>
+                }
               </div>
             }
           </div>
         }
 
-        <!-- Add / Edit Question panel (open for active section) -->
-        @if (aqSectionId() === section.sectionId) {
+        <!--
+          Bottom area logic:
+          • Active section + no edit in progress → add-new panel
+          • Inactive section → "Add Question Here" button
+          • Active section + editing → nothing (edit is shown inline above)
+        -->
+        @if (aqSectionId() === section.sectionId && aqEditingQuestionId() === null) {
           <div class="aq-panel">
-
-            @if (aqEditingQuestionId() !== null) {
-              <div class="aq-edit-banner">
-                <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
-                  <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
-                </svg>
-                Editing question
-                <button class="btn-cancel-edit" (click)="cancelEdit()">Cancel</button>
-              </div>
-            }
-
-            <div class="aq-top-row">
-              <div class="aq-field aq-type">
-                <label class="aq-label">Question Type <span class="req">*</span></label>
-                <select class="aq-select"
-                  [ngModel]="aqTypeId()"
-                  (ngModelChange)="onTypeChange($event)">
-                  <option value="0" disabled>Select type…</option>
-                  @for (qt of questionTypes(); track qt.questionTypeId) {
-                    <option [value]="qt.questionTypeId">{{ qt.questionTypeName }}</option>
-                  }
-                </select>
-              </div>
-              <div class="aq-field aq-order">
-                <label class="aq-label">Order</label>
-                <input class="aq-input" type="number" min="1"
-                  [ngModel]="aqOrder()" (ngModelChange)="aqOrder.set(+$event)" />
-              </div>
-              <label class="aq-required-toggle">
-                <input type="checkbox" [ngModel]="aqRequired()" (ngModelChange)="aqRequired.set($event)" />
-                Required
-              </label>
-            </div>
-
-            @if (aqTypeId() > 0) {
-              <div class="aq-field aq-text-field">
-                <label class="aq-label">Question Text <span class="req">*</span></label>
-                <input class="aq-input" type="text" placeholder="Enter your question…"
-                  [ngModel]="aqText()" (ngModelChange)="aqText.set($event)"
-                  (keydown.enter)="saveQuestion()" />
-              </div>
-
-              <!-- Text / Long Text: min + max length -->
-              @if (typeFlags().hasMinMax) {
-                <div class="aq-row-2">
-                  <div class="aq-field">
-                    <label class="aq-label">Min Length</label>
-                    <input class="aq-input" type="number" min="0" placeholder="0"
-                      [ngModel]="aqMinLen()" (ngModelChange)="aqMinLen.set($event)" />
-                  </div>
-                  <div class="aq-field">
-                    <label class="aq-label">Max Length</label>
-                    <input class="aq-input" type="number" min="1" placeholder="No limit"
-                      [ngModel]="aqMaxLen()" (ngModelChange)="aqMaxLen.set($event)" />
-                  </div>
-                </div>
-              }
-
-              <!-- Number / Rating / Range: min + max value -->
-              @if (typeFlags().hasNumberRange) {
-                <div class="aq-row-2">
-                  <div class="aq-field">
-                    <label class="aq-label">Min Value</label>
-                    <input class="aq-input" type="number" placeholder="e.g. 1"
-                      [ngModel]="aqMinVal()" (ngModelChange)="aqMinVal.set($event)" />
-                  </div>
-                  <div class="aq-field">
-                    <label class="aq-label">Max Value</label>
-                    <input class="aq-input" type="number" placeholder="e.g. 10"
-                      [ngModel]="aqMaxVal()" (ngModelChange)="aqMaxVal.set($event)" />
-                  </div>
-                </div>
-              }
-
-              <!-- Radio / Checkbox / Dropdown: option list -->
-              @if (typeFlags().hasOptions) {
-                <div class="aq-field">
-                  <label class="aq-label">Options</label>
-                  <div class="options-list">
-                    @for (opt of aqOptions(); track $index) {
-                      <div class="option-chip">
-                        <span>{{ opt }}</span>
-                        <button type="button" (click)="removeOption($index)">×</button>
-                      </div>
-                    }
-                  </div>
-                  <div class="option-add-row">
-                    <input class="aq-input" type="text" placeholder="Type an option and press Enter…"
-                      [ngModel]="aqPendOpt()" (ngModelChange)="aqPendOpt.set($event)"
-                      (keydown.enter)="addOption()" />
-                    <button class="btn-add-opt" type="button" (click)="addOption()">Add</button>
-                  </div>
-                </div>
-              }
-
-              <!-- Scored options (text + number value) -->
-              @if (typeFlags().hasScored) {
-                <div class="aq-field">
-                  <label class="aq-label">Options (Text + Score)</label>
-                  <div class="options-list">
-                    @for (opt of aqScored(); track $index) {
-                      <div class="option-chip scored">
-                        <span>{{ opt.text }}</span>
-                        <span class="score-val">{{ opt.value }}</span>
-                        <button type="button" (click)="removeScoredOption($index)">×</button>
-                      </div>
-                    }
-                  </div>
-                  <div class="scored-add-row">
-                    <input class="aq-input" type="text" placeholder="Option text"
-                      [ngModel]="aqPendText()" (ngModelChange)="aqPendText.set($event)"
-                      (keydown.enter)="addScoredOption()" />
-                    <input class="aq-input scored-val-input" type="number" placeholder="Value"
-                      [ngModel]="aqPendVal()" (ngModelChange)="aqPendVal.set('' + $event)"
-                      (keydown.enter)="addScoredOption()" />
-                    <button class="btn-add-opt" type="button" (click)="addScoredOption()">Add</button>
-                  </div>
-                </div>
-              }
-
-              <!-- Likert: scale selector -->
-              @if (typeFlags().hasScale) {
-                <div class="aq-field">
-                  <label class="aq-label">Scale Points</label>
-                  <div class="scale-btns">
-                    @for (s of [5, 7, 10]; track s) {
-                      <button type="button" class="scale-btn"
-                        [class.active]="aqScale() === s"
-                        (click)="aqScale.set(s)">{{ s }}</button>
-                    }
-                  </div>
-                </div>
-              }
-            }
-
-            @if (aqError()) {
-              <div class="aq-error">{{ aqError() }}</div>
-            }
-
+            <ng-container [ngTemplateOutlet]="aqFields"></ng-container>
             <div class="aq-actions">
-              @if (aqEditingQuestionId() !== null) {
-                <button class="btn btn-outline btn-sm" (click)="cancelEdit()" [disabled]="aqSaving()">Cancel</button>
-              }
               <button class="btn btn-accent"
                 [disabled]="aqSaving() || aqTypeId() === 0"
                 (click)="saveQuestion()">
-                @if (aqSaving()) {
-                  {{ aqEditingQuestionId() !== null ? 'Updating…' : 'Saving…' }}
-                } @else {
-                  {{ aqEditingQuestionId() !== null ? 'Update Question' : 'Save Question' }}
-                }
+                @if (aqSaving()) { Saving… } @else { Save Question }
               </button>
             </div>
           </div>
-
-        } @else {
+        } @else if (aqSectionId() !== section.sectionId) {
           <button class="add-here-btn" (click)="openAddPanel(section)">
             <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
               <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>

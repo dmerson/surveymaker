@@ -1,12 +1,13 @@
 import { Component, OnInit, computed, signal, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FormService } from '../../services/form.service';
 import { FormDetail, QuestionDetail, QuestionType, SectionDetail } from '../../models/form.model';
 
 @Component({
   selector: 'app-form-editor',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, NgTemplateOutlet],
   templateUrl: './form-editor.html',
   styleUrl: './form-editor.scss'
 })

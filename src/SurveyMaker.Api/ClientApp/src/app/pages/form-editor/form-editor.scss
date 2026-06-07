@@ -152,6 +152,9 @@
 // ── Question list ─────────────────────────────────────────────────────
 .question-list { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1rem; }
 
+// Wraps each row + its optional inline edit panel as one unit (no gap between them)
+.question-group { display: flex; flex-direction: column; }
+
 .question-row {
   display: flex;
   align-items: center;
@@ -165,7 +168,18 @@
   &.editing {
     border-color: var(--c-teal);
     background: var(--c-foam);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
   }
+}
+
+// Inline edit panel — flush below the editing question row
+.aq-inline-panel {
+  background: var(--c-white);
+  border: 1.5px solid var(--c-teal);
+  border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+  padding: 1.25rem;
 }
 
 .q-num { font-size: 0.78rem; font-weight: 700; color: var(--c-teal); min-width: 1.2rem; }
@@ -189,35 +203,6 @@
   padding: 0.25rem; border-radius: 4px; display: flex;
   &:hover { color: #b91c1c; background: #fef2f2; }
   &:disabled { opacity: 0.35; cursor: not-allowed; }
-}
-
-// ── Edit banner ───────────────────────────────────────────────────────
-.aq-edit-banner {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--c-teal);
-  background: var(--c-foam);
-  border: 1px solid var(--c-teal);
-  border-radius: var(--radius-sm);
-  padding: 0.45rem 0.85rem;
-  margin-bottom: 1rem;
-}
-
-.btn-cancel-edit {
-  margin-left: auto;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--c-teal);
-  font-family: inherit;
-  text-decoration: underline;
-  padding: 0;
-  &:hover { color: var(--c-ocean); }
 }
 
 // ── Add Question panel ────────────────────────────────────────────────
