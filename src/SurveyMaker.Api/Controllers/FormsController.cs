@@ -31,8 +31,9 @@ public class FormsController(SurveyMakerDbContext db) : ControllerBase
                 description   = f.Description,
                 securityTypeId = f.SecurityTypeId,
                 published     = f.Published,
-                questionCount = f.Sections.SelectMany(s => s.Questions).Count(),
-                createdAt     = f.CreatedAt
+                questionCount  = f.Sections.SelectMany(s => s.Questions).Count(),
+                responseCount  = f.Submissions.Count,
+                createdAt      = f.CreatedAt
             })
             .ToListAsync();
 
@@ -160,6 +161,83 @@ public class FormsController(SurveyMakerDbContext db) : ControllerBase
         db.Forms.Remove(form);
         await db.SaveChangesAsync();
         return Ok();
+    }
+
+    // ── List submissions ──────────────────────────────────────────────────────
+
+    [HttpGet("{formId:guid}/submissions")]
+    public async Task<IActionResult> ListSubmissions(Guid formId)
+    {
+        var form = await db.Forms
+            .Where(f => f.FormId == formId && f.FormCreatorEmail == UserEmail)
+            .Select(f => new { f.FormId, f.FormName })
+            .FirstOrDefaultAsync();
+        if (form is null) return NotFound();
+
+        var submissions = await db.FormSubmissions
+            .Where(s => s.FormId == formId)
+            .OrderByDescending(s => s.SubmittedAt ?? s.StartedAt)
+            .Select(s => new
+            {
+                submissionId = s.SubmissionId,
+                userEmail    = s.UserEmail,
+                submittedAt  = s.SubmittedAt,
+                isComplete   = s.IsComplete
+            })
+            .ToListAsync();
+
+        return Ok(new { formId = form.FormId, formName = form.FormName, submissions });
+    }
+
+    // ── Get submission detail ─────────────────────────────────────────────────
+
+    [HttpGet("{formId:guid}/submissions/{submissionId:guid}")]
+    public async Task<IActionResult> GetSubmission(Guid formId, Guid submissionId)
+    {
+        var form = await db.Forms
+            .Include(f => f.Sections.OrderBy(s => s.Order))
+                .ThenInclude(s => s.Questions.OrderBy(q => q.Order))
+                    .ThenInclude(q => q.QuestionType)
+            .FirstOrDefaultAsync(f => f.FormId == formId && f.FormCreatorEmail == UserEmail);
+        if (form is null) return NotFound();
+
+        var submission = await db.FormSubmissions
+            .Include(s => s.Answers)
+            .FirstOrDefaultAsync(s => s.SubmissionId == submissionId && s.FormId == formId);
+        if (submission is null) return NotFound();
+
+        var answerMap = submission.Answers.ToDictionary(a => a.QuestionId);
+
+        return Ok(new
+        {
+            submissionId = submission.SubmissionId,
+            formId       = form.FormId,
+            formName     = form.FormName,
+            description  = form.Description,
+            userEmail    = submission.UserEmail,
+            submittedAt  = submission.SubmittedAt,
+            sections     = form.Sections.Select(s => new
+            {
+                sectionId   = s.SectionId,
+                sectionName = s.SectionName,
+                order       = s.Order,
+                questions   = s.Questions.Select(q =>
+                {
+                    answerMap.TryGetValue(q.QuestionId, out var a);
+                    return new
+                    {
+                        questionId         = q.QuestionId,
+                        order              = q.Order,
+                        text               = q.Text,
+                        questionTypeId     = q.QuestionTypeId,
+                        questionTypeName   = q.QuestionType.QuestionTypeName,
+                        questionAttributes = q.QuestionAttributes,
+                        answerScalar       = a?.AnswerScalar,
+                        answerJson         = a?.AnswerJson
+                    };
+                })
+            })
+        });
     }
 
     // ── Add section ───────────────────────────────────────────────────────────

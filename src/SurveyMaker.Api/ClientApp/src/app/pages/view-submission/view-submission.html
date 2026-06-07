@@ -1,0 +1,206 @@
+@if (loading()) {
+  <div class="sv-loading">Loading response…</div>
+
+} @else if (error()) {
+  <div class="sv-error"><p>{{ error() }}</p></div>
+
+} @else if (submission(); as sub) {
+  <div class="sv-wrap">
+
+    <!-- Back + header -->
+    <a [routerLink]="['/forms', sub.formId, 'answers']" class="sv-back">← Back to Responses</a>
+
+    <div class="sv-intro">
+      <h1 class="sv-title">{{ sub.formName }}</h1>
+      @if (sub.description) {
+        <p class="sv-desc">{{ sub.description }}</p>
+      }
+      <div class="sv-meta">
+        <span>{{ sub.userEmail ?? 'Anonymous' }}</span>
+        @if (sub.submittedAt) {
+          <span>Submitted {{ sub.submittedAt | slice:0:10 }}</span>
+        }
+      </div>
+    </div>
+
+    <!-- Questions with answers -->
+    <div class="sv-questions">
+      @for (section of sub.sections; track section.sectionId) {
+
+        @if (section.sectionName) {
+          <h2 class="sv-section-title">{{ section.sectionName }}</h2>
+        }
+
+        @for (q of section.questions; track q.questionId) {
+          <div class="sv-question" [class.sv-question--empty]="!q.answerScalar && !q.answerArr.length">
+
+            <div class="sv-q-label">
+              <span class="sv-q-num">{{ q.order }}.</span>
+              <span class="sv-q-text">{{ q.text }}</span>
+            </div>
+
+            <div class="sv-q-answer">
+              @switch (q.questionTypeId) {
+
+                <!-- 1 · Text / 2 · Long Text -->
+                @case (T.TEXT) {
+                  <div class="sv-answer-box">{{ q.answerScalar || '—' }}</div>
+                }
+                @case (T.LONG_TEXT) {
+                  <div class="sv-answer-box sv-answer-box--multi">{{ q.answerScalar || '—' }}</div>
+                }
+
+                <!-- 3 · Number / 7 · Date / 8 · Time / 9 · DateTime -->
+                @case (T.NUMBER)   { <div class="sv-answer-box sv-answer-box--inline">{{ q.answerScalar || '—' }}</div> }
+                @case (T.DATE)     { <div class="sv-answer-box sv-answer-box--inline">{{ q.answerScalar || '—' }}</div> }
+                @case (T.TIME)     { <div class="sv-answer-box sv-answer-box--inline">{{ q.answerScalar || '—' }}</div> }
+                @case (T.DATETIME) { <div class="sv-answer-box sv-answer-box--inline">{{ q.answerScalar || '—' }}</div> }
+
+                <!-- 15 · Email / 16 · Phone -->
+                @case (T.EMAIL) { <div class="sv-answer-box sv-answer-box--inline">{{ q.answerScalar || '—' }}</div> }
+                @case (T.PHONE) { <div class="sv-answer-box sv-answer-box--inline">{{ q.answerScalar || '—' }}</div> }
+
+                <!-- 17 · URL -->
+                @case (T.URL) {
+                  @if (q.answerScalar) {
+                    <a [href]="q.answerScalar" class="sv-answer-link" target="_blank" rel="noopener">
+                      {{ q.answerScalar }}
+                    </a>
+                  } @else {
+                    <div class="sv-answer-box sv-answer-box--inline">—</div>
+                  }
+                }
+
+                <!-- 4 · Radio -->
+                @case (T.RADIO) {
+                  <div class="sv-answer-opts">
+                    @for (opt of strOpts(q); track opt) {
+                      <span class="sv-opt-pill" [class.sv-opt-pill--selected]="q.answerScalar === opt">{{ opt }}</span>
+                    }
+                  </div>
+                }
+
+                <!-- 5 · Checkbox -->
+                @case (T.CHECKBOX) {
+                  <div class="sv-answer-opts">
+                    @for (opt of strOpts(q); track opt) {
+                      <span class="sv-opt-pill" [class.sv-opt-pill--selected]="q.answerArr.includes(opt)">{{ opt }}</span>
+                    }
+                  </div>
+                }
+
+                <!-- 6 · Dropdown -->
+                @case (T.DROPDOWN) {
+                  <div class="sv-answer-opts">
+                    @for (opt of strOpts(q); track opt) {
+                      <span class="sv-opt-pill" [class.sv-opt-pill--selected]="q.answerScalar === opt">{{ opt }}</span>
+                    }
+                  </div>
+                }
+
+                <!-- 19 · Yes/No -->
+                @case (T.YES_NO) {
+                  <div class="sv-answer-opts">
+                    @for (opt of ['Yes', 'No']; track opt) {
+                      <span class="sv-opt-pill" [class.sv-opt-pill--selected]="q.answerScalar === opt">{{ opt }}</span>
+                    }
+                  </div>
+                }
+
+                <!-- 22 · Radio With Values -->
+                @case (T.RADIO_VAL) {
+                  <div class="sv-answer-opts">
+                    @for (opt of scoredOpts(q); track opt.text) {
+                      <span class="sv-opt-pill" [class.sv-opt-pill--selected]="q.answerScalar === opt.text">
+                        {{ opt.text }}<span class="sv-score">{{ opt.value }}</span>
+                      </span>
+                    }
+                  </div>
+                }
+
+                <!-- 20 · Checkbox With Values -->
+                @case (T.CHECKBOX_VAL) {
+                  <div class="sv-answer-opts">
+                    @for (opt of scoredOpts(q); track opt.text) {
+                      <span class="sv-opt-pill" [class.sv-opt-pill--selected]="q.answerArr.includes(opt.text)">
+                        {{ opt.text }}<span class="sv-score">{{ opt.value }}</span>
+                      </span>
+                    }
+                  </div>
+                }
+
+                <!-- 21 · Dropdown With Values -->
+                @case (T.DROPDOWN_VAL) {
+                  <div class="sv-answer-opts">
+                    @for (opt of scoredOpts(q); track opt.text) {
+                      <span class="sv-opt-pill" [class.sv-opt-pill--selected]="q.answerScalar === opt.text">
+                        {{ opt.text }}<span class="sv-score">{{ opt.value }}</span>
+                      </span>
+                    }
+                  </div>
+                }
+
+                <!-- 12 · Rating Scale -->
+                @case (T.RATING) {
+                  <div class="sv-answer-row">
+                    @for (n of ratingItems(q); track n) {
+                      <span class="sv-num-btn" [class.sv-num-btn--selected]="q.answerScalar === '' + n">{{ n }}</span>
+                    }
+                  </div>
+                }
+
+                <!-- 13 · Likert -->
+                @case (T.LIKERT) {
+                  <div class="sv-answer-row">
+                    @for (n of scaleItems(q); track n) {
+                      <span class="sv-num-btn" [class.sv-num-btn--selected]="q.answerScalar === '' + n">{{ n }}</span>
+                    }
+                  </div>
+                  <div class="sv-scale-labels">
+                    <span>Strongly Disagree</span><span>Strongly Agree</span>
+                  </div>
+                }
+
+                <!-- 18 · NPS -->
+                @case (T.NPS) {
+                  <div class="sv-answer-row sv-answer-row--nps">
+                    @for (n of npsItems(); track n) {
+                      <span class="sv-num-btn"
+                        [class.sv-num-btn--selected]="q.answerScalar === '' + n"
+                        [class.nps-low]="n <= 6"
+                        [class.nps-mid]="n >= 7 && n <= 8"
+                        [class.nps-high]="n >= 9">{{ n }}</span>
+                    }
+                  </div>
+                  <div class="sv-scale-labels">
+                    <span>Not at all likely</span><span>Extremely likely</span>
+                  </div>
+                }
+
+                <!-- 14 · Range -->
+                @case (T.RANGE) {
+                  <div class="sv-answer-range">
+                    <span class="sv-range-bound">{{ rangeMin(q) }}</span>
+                    <div class="sv-range-track">
+                      <div class="sv-range-fill" [style.width.%]="rangePercent(q)"></div>
+                    </div>
+                    <span class="sv-range-bound">{{ rangeMax(q) }}</span>
+                    <span class="sv-range-val">{{ q.answerScalar ?? rangeMin(q) }}</span>
+                  </div>
+                }
+
+                <!-- Fallback -->
+                @default {
+                  <div class="sv-answer-box">{{ q.answerScalar || q.answerJson || '—' }}</div>
+                }
+
+              }
+            </div>
+
+          </div>
+        }
+      }
+    </div>
+
+  </div>
+}

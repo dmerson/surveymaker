@@ -31,9 +31,10 @@ export class TakeSurvey implements OnInit {
   // Expose type constants to the template
   readonly T = T;
 
-  loadedSurvey = signal<LoadedSurvey | null>(null);
-  loading      = signal(true);
-  loadError    = signal('');
+  loadedSurvey   = signal<LoadedSurvey | null>(null);
+  loading        = signal(true);
+  loadError      = signal('');
+  accessDenied   = signal(false);
 
   // answer map: questionId → string (scalar) or string[] (multi-select)
   answers     = signal<Record<number, string | string[]>>({});
@@ -44,8 +45,6 @@ export class TakeSurvey implements OnInit {
   submitted   = signal(false);
   submitError = signal('');
 
-  private readonly route_snapshot = inject(ActivatedRoute);
-
   ngOnInit(): void {
     const formId = this.route.snapshot.paramMap.get('id')!;
 
@@ -54,9 +53,13 @@ export class TakeSurvey implements OnInit {
         this.loadedSurvey.set(this.loadSurvey(detail));
         this.loading.set(false);
       },
-      error: () => {
-        this.loadError.set('Survey not found or no longer available.');
+      error: (err) => {
         this.loading.set(false);
+        if (err?.status === 403) {
+          this.accessDenied.set(true);
+        } else {
+          this.loadError.set('Survey not found or no longer available.');
+        }
       }
     });
   }

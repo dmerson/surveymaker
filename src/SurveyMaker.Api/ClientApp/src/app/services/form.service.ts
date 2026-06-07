@@ -1,7 +1,10 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { FormDetail, FormSummary, QuestionType, SectionDetail } from '../models/form.model';
+import {
+  FormDetail, FormSummary, QuestionType, SectionDetail,
+  SubmissionsResponse, SubmissionDetail
+} from '../models/form.model';
 
 @Injectable({ providedIn: 'root' })
 export class FormService {
@@ -77,5 +80,13 @@ export class FormService {
 
   getQuestionTypes(): Observable<QuestionType[]> {
     return this.http.get<QuestionType[]>('/api/question-types');
+  }
+
+  listSubmissions(formId: string): Observable<SubmissionsResponse> {
+    return this.http.get<SubmissionsResponse>(`/api/forms/${formId}/submissions`);
+  }
+
+  getSubmission(formId: string, submissionId: string): Observable<SubmissionDetail> {
+    return this.http.get<SubmissionDetail>(`/api/forms/${formId}/submissions/${submissionId}`);
   }
 }

@@ -11,9 +11,10 @@ import { FormSummary } from '../../models/form.model';
   styleUrl: './my-forms.scss'
 })
 export class MyForms implements OnInit {
-  forms   = signal<FormSummary[]>([]);
-  loading = signal(true);
-  error   = signal('');
+  forms       = signal<FormSummary[]>([]);
+  loading     = signal(true);
+  error       = signal('');
+  copiedId    = signal<string | null>(null);
 
   private readonly formService = inject(FormService);
 
@@ -30,5 +31,13 @@ export class MyForms implements OnInit {
 
   securityClass(id: number): string {
     return id === 1 ? 'badge-public' : id === 2 ? 'badge-private' : 'badge-url';
+  }
+
+  copyLink(formId: string): void {
+    const url = `${window.location.origin}/survey/${formId}`;
+    navigator.clipboard.writeText(url).then(() => {
+      this.copiedId.set(formId);
+      setTimeout(() => this.copiedId.set(null), 2000);
+    });
   }
 }

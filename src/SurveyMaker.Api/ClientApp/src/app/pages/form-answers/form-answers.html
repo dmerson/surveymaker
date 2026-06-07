@@ -1,0 +1,67 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div>
+      <a routerLink="/my-forms" class="back-link">← My Forms</a>
+      <h1 class="page-title">{{ formName() || 'Responses' }}</h1>
+      <p class="page-subtitle">
+        {{ submissions().length }} response{{ submissions().length !== 1 ? 's' : '' }}
+      </p>
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="loading-state">Loading responses…</div>
+
+  } @else if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+
+  } @else if (submissions().length === 0) {
+    <div class="empty-card">
+      <svg class="empty-icon" viewBox="0 0 64 64" fill="none">
+        <rect x="8" y="8" width="48" height="48" rx="5" stroke="currentColor" stroke-width="2.5"/>
+        <line x1="18" y1="24" x2="46" y2="24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="18" y1="33" x2="40" y2="33" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+        <line x1="18" y1="42" x2="34" y2="42" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+      </svg>
+      <h3>No responses yet</h3>
+      <p>Responses will appear here once people submit the survey.</p>
+    </div>
+
+  } @else {
+    <div class="resp-table-wrap">
+      <table class="resp-table">
+        <thead>
+          <tr>
+            <th class="col-num">#</th>
+            <th>Respondent</th>
+            <th>Submitted</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (sub of submissions(); track sub.submissionId; let i = $index) {
+            <tr>
+              <td class="col-num">{{ i + 1 }}</td>
+              <td class="col-email">{{ sub.userEmail ?? 'Anonymous' }}</td>
+              <td class="col-date">{{ sub.submittedAt ? (sub.submittedAt | slice:0:10) : '—' }}</td>
+              <td>
+                <span class="status-badge"
+                  [class.badge-complete]="sub.isComplete"
+                  [class.badge-partial]="!sub.isComplete">
+                  {{ sub.isComplete ? 'Complete' : 'Partial' }}
+                </span>
+              </td>
+              <td class="col-action">
+                <a [routerLink]="['/forms', formId(), 'answers', sub.submissionId]"
+                   class="btn btn-outline btn-sm">
+                  View
+                </a>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

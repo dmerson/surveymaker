@@ -1,6 +1,12 @@
 @if (loading()) {
   <div class="sv-loading">Loading survey…</div>
 
+} @else if (accessDenied()) {
+  <div class="sv-error">
+    <p>This survey is private. You must be signed in and have been granted access to view it.</p>
+    <a href="/api/account/login" class="btn btn-accent" style="margin-top:1rem">Sign In</a>
+  </div>
+
 } @else if (loadError()) {
   <div class="sv-error">
     <p>{{ loadError() }}</p>

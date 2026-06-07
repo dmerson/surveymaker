@@ -1,0 +1,100 @@
+.back-link {
+  font-size: 0.82rem;
+  color: var(--c-text-light);
+  text-decoration: none;
+  display: inline-block;
+  margin-bottom: 0.35rem;
+  &:hover { color: var(--c-teal); }
+}
+
+.loading-state {
+  text-align: center;
+  color: var(--c-text-light);
+  padding: 3rem;
+}
+
+.error-banner {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+}
+
+.empty-card {
+  background: var(--c-white);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--c-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 3.5rem 2rem;
+  text-align: center;
+  color: var(--c-text-light);
+
+  h3 { font-size: 1.05rem; font-weight: 600; margin: 1rem 0 0.35rem; color: var(--c-deep); }
+  p  { font-size: 0.9rem; margin: 0; }
+}
+
+.empty-icon { width: 56px; height: 56px; color: var(--c-border); }
+
+.resp-table-wrap {
+  background: var(--c-white);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--c-border);
+  overflow: hidden;
+}
+
+.resp-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+
+  th {
+    text-align: left;
+    padding: 0.85rem 1.25rem;
+    font-size: 0.775rem;
+    font-weight: 600;
+    color: var(--c-text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--c-border);
+    background: var(--c-surface);
+  }
+
+  td {
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid var(--c-border);
+    color: var(--c-text);
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--c-surface); }
+}
+
+.col-num    { width: 3.5rem; color: var(--c-text-light) !important; font-size: 0.82rem !important; }
+.col-email  { max-width: 300px; }
+.col-date   { white-space: nowrap; color: var(--c-text-mid) !important; }
+.col-action { text-align: right; white-space: nowrap; }
+
+.btn-sm {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.82rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.status-badge {
+  font-size: 0.73rem;
+  font-weight: 600;
+  padding: 0.15rem 0.55rem;
+  border-radius: 100px;
+  white-space: nowrap;
+
+  &.badge-complete { background: #d1fae5; color: #065f46; }
+  &.badge-partial  { background: #fef3c7; color: #92400e; }
+}

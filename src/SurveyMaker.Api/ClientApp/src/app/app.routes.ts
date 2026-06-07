@@ -9,21 +9,25 @@ import { MySurveys } from './pages/my-surveys/my-surveys';
 import { PublicSurvey } from './pages/public-survey/public-survey';
 import { FormEditor } from './pages/form-editor/form-editor';
 import { TakeSurvey } from './pages/take-survey/take-survey';
+import { FormAnswers } from './pages/form-answers/form-answers';
+import { ViewSubmission } from './pages/view-submission/view-submission';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', component: Home },
+  { path: 'survey/:id', component: TakeSurvey },
   {
     path: '',
     component: Layout,
     canActivate: [authGuard],
     children: [
-      { path: 'dashboard',          component: Dashboard },
-      { path: 'my-forms',           component: MyForms },
-      { path: 'create-form',        component: CreateForm },
-      { path: 'forms/:id/edit',     component: FormEditor },
-      { path: 'my-surveys',         component: MySurveys },
-      { path: 'public-survey',      component: PublicSurvey },
-      { path: 'survey/:id',         component: TakeSurvey },
+      { path: 'dashboard',                                   component: Dashboard },
+      { path: 'my-forms',                                    component: MyForms },
+      { path: 'create-form',                                 component: CreateForm },
+      { path: 'forms/:id/edit',                              component: FormEditor },
+      { path: 'forms/:id/answers',                           component: FormAnswers },
+      { path: 'forms/:id/answers/:submissionId',             component: ViewSubmission },
+      { path: 'my-surveys',                                  component: MySurveys },
+      { path: 'public-survey',                               component: PublicSurvey },
     ]
   },
   { path: '**', redirectTo: '' }

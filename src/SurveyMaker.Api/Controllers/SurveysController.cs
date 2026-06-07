@@ -37,14 +37,23 @@ public class SurveysController(SurveyMakerDbContext db) : ControllerBase
     public async Task<IActionResult> GetSurvey(Guid formId)
     {
         var form = await db.Forms
+            .Include(f => f.AllowedUsers)
             .Include(f => f.Sections.OrderBy(s => s.Order))
                 .ThenInclude(s => s.Questions.OrderBy(q => q.Order))
                     .ThenInclude(q => q.QuestionType)
-            .FirstOrDefaultAsync(f => f.FormId == formId
-                                   && f.Published
-                                   && f.SecurityTypeId == 1);
+            .FirstOrDefaultAsync(f => f.FormId == formId && f.Published);
 
         if (form is null) return NotFound();
+
+        // Private: must be authenticated and in the allowed list (or be creator)
+        if (form.SecurityTypeId == 2)
+        {
+            if (User.Identity?.IsAuthenticated != true) return Forbid();
+            var email = User.FindFirstValue(ClaimTypes.Email);
+            var allowed = form.FormCreatorEmail == email
+                       || form.AllowedUsers.Any(u => u.UserEmail == email);
+            if (!allowed) return Forbid();
+        }
 
         return Ok(new
         {
@@ -74,9 +83,19 @@ public class SurveysController(SurveyMakerDbContext db) : ControllerBase
     [HttpPost("{formId:guid}/submit")]
     public async Task<IActionResult> Submit(Guid formId, [FromBody] SurveySubmitRequest request)
     {
-        var formExists = await db.Forms
-            .AnyAsync(f => f.FormId == formId && f.Published && f.SecurityTypeId == 1);
-        if (!formExists) return NotFound();
+        var form = await db.Forms
+            .Include(f => f.AllowedUsers)
+            .FirstOrDefaultAsync(f => f.FormId == formId && f.Published);
+        if (form is null) return NotFound();
+
+        if (form.SecurityTypeId == 2)
+        {
+            if (User.Identity?.IsAuthenticated != true) return Forbid();
+            var email = User.FindFirstValue(ClaimTypes.Email);
+            var allowed = form.FormCreatorEmail == email
+                       || form.AllowedUsers.Any(u => u.UserEmail == email);
+            if (!allowed) return Forbid();
+        }
 
         var userEmail = User.Identity?.IsAuthenticated == true
             ? User.FindFirstValue(ClaimTypes.Email)
@@ -84,7 +103,7 @@ public class SurveysController(SurveyMakerDbContext db) : ControllerBase
 
         var submission = new FormSubmission
         {
-            FormId      = formId,
+            FormId      = form.FormId,
             UserEmail   = userEmail,
             StartedAt   = DateTime.UtcNow,
             SubmittedAt = DateTime.UtcNow,
