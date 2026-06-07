@@ -87,22 +87,29 @@ public class SurveysController(SurveyMakerDbContext db) : ControllerBase
     [HttpGet("{formId:guid}")]
     public async Task<IActionResult> GetSurvey(Guid formId)
     {
+        var callerEmail = User.Identity?.IsAuthenticated == true
+            ? User.FindFirstValue(ClaimTypes.Email)
+            : null;
+
         var form = await db.Forms
             .Include(f => f.AllowedUsers)
             .Include(f => f.Sections.OrderBy(s => s.Order))
                 .ThenInclude(s => s.Questions.OrderBy(q => q.Order))
                     .ThenInclude(q => q.QuestionType)
-            .FirstOrDefaultAsync(f => f.FormId == formId && f.Published);
+            .FirstOrDefaultAsync(f => f.FormId == formId);
 
         if (form is null) return NotFound();
+
+        // Unpublished forms are only visible to their creator (preview mode)
+        if (!form.Published && form.FormCreatorEmail != callerEmail)
+            return NotFound();
 
         // Private: must be authenticated and in the allowed list (or be creator)
         if (form.SecurityTypeId == 2)
         {
-            if (User.Identity?.IsAuthenticated != true) return Forbid();
-            var email = User.FindFirstValue(ClaimTypes.Email);
-            var allowed = form.FormCreatorEmail == email
-                       || form.AllowedUsers.Any(u => u.UserEmail == email);
+            if (callerEmail is null) return Forbid();
+            var allowed = form.FormCreatorEmail == callerEmail
+                       || form.AllowedUsers.Any(u => u.UserEmail == callerEmail);
             if (!allowed) return Forbid();
         }
 
