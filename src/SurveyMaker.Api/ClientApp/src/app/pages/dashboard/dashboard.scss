@@ -74,3 +74,78 @@
 
   &:hover { text-decoration: underline; }
 }
+
+.dash-loading {
+  font-size: 0.9rem;
+  color: var(--c-text-light);
+  padding: 1rem 0;
+}
+
+// Recent forms list
+.recent-forms-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.recent-form-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid var(--c-border);
+
+  &:last-child { border-bottom: none; }
+}
+
+.recent-form-name {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--c-deep);
+  text-decoration: none;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  &:hover { color: var(--c-teal); text-decoration: underline; }
+}
+
+.recent-form-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.recent-form-date {
+  font-size: 0.78rem;
+  color: var(--c-text-light);
+  white-space: nowrap;
+}
+
+.security-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.15rem 0.55rem;
+  border-radius: 100px;
+  white-space: nowrap;
+
+  &.badge-public  { background: #d1fae5; color: #065f46; }
+  &.badge-private { background: #fef3c7; color: #92400e; }
+  &.badge-url     { background: var(--c-foam); color: var(--c-teal); }
+}
+
+.view-all-link {
+  display: block;
+  margin-top: 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--c-teal);
+  text-decoration: none;
+
+  &:hover { text-decoration: underline; }
+}

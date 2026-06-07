@@ -18,7 +18,7 @@
   <!-- Stats -->
   <div class="stat-grid">
     <div class="stat-card">
-      <div class="stat-value">0</div>
+      <div class="stat-value">{{ formsLoading() ? '—' : formCount() }}</div>
       <div class="stat-label">My Forms</div>
     </div>
     <div class="stat-card">
@@ -39,17 +39,45 @@
         <h2 class="card-title">Recent Forms</h2>
         <a routerLink="/my-forms" class="card-link">View all</a>
       </div>
-      <div class="empty-state">
-        <svg class="empty-icon" viewBox="0 0 64 64" fill="none">
-          <rect x="8" y="4" width="40" height="52" rx="5" stroke="currentColor" stroke-width="2.5"/>
-          <line x1="18" y1="20" x2="38" y2="20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-          <line x1="18" y1="29" x2="34" y2="29" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
-          <path d="M18 40 C21 36 24 36 27 40 C30 44 33 44 36 40" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-        </svg>
-        <h3>No forms yet</h3>
-        <p>Create your first form to start collecting responses.</p>
-        <a routerLink="/create-form" class="btn btn-primary" style="margin-top:0.5rem">Create a Form</a>
-      </div>
+
+      @if (formsLoading()) {
+        <p class="dash-loading">Loading…</p>
+
+      } @else if (recentForms().length === 0) {
+        <div class="empty-state">
+          <svg class="empty-icon" viewBox="0 0 64 64" fill="none">
+            <rect x="8" y="4" width="40" height="52" rx="5" stroke="currentColor" stroke-width="2.5"/>
+            <line x1="18" y1="20" x2="38" y2="20" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="18" y1="29" x2="34" y2="29" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+            <path d="M18 40 C21 36 24 36 27 40 C30 44 33 44 36 40" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+          </svg>
+          <h3>No forms yet</h3>
+          <p>Create your first form to start collecting responses.</p>
+          <a routerLink="/create-form" class="btn btn-primary" style="margin-top:0.5rem">Create a Form</a>
+        </div>
+
+      } @else {
+        <ul class="recent-forms-list">
+          @for (form of recentForms(); track form.formId) {
+            <li class="recent-form-item">
+              <a [routerLink]="['/forms', form.formId, 'edit']" class="recent-form-name">
+                {{ form.formName }}
+              </a>
+              <div class="recent-form-meta">
+                <span class="security-badge" [class]="securityClass(form.securityTypeId)">
+                  {{ securityLabel(form.securityTypeId) }}
+                </span>
+                <span class="recent-form-date">{{ form.createdAt | slice:0:10 }}</span>
+              </div>
+            </li>
+          }
+        </ul>
+        @if (formCount() > 5) {
+          <a routerLink="/my-forms" class="view-all-link">
+            View all {{ formCount() }} forms →
+          </a>
+        }
+      }
     </div>
 
     <div class="card">
