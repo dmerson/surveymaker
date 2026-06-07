@@ -17,7 +17,7 @@ public class SurveysController(SurveyMakerDbContext db) : ControllerBase
     [Authorize]
     public async Task<IActionResult> GetMine()
     {
-        var email = User.FindFirstValue(ClaimTypes.Email)!;
+        var email = User.FindFirstValue(ClaimTypes.Email)!.Trim().ToLowerInvariant();
 
         // Completed submissions (newest first)
         var completed = await db.FormSubmissions
@@ -88,7 +88,7 @@ public class SurveysController(SurveyMakerDbContext db) : ControllerBase
     public async Task<IActionResult> GetSurvey(Guid formId)
     {
         var callerEmail = User.Identity?.IsAuthenticated == true
-            ? User.FindFirstValue(ClaimTypes.Email)
+            ? User.FindFirstValue(ClaimTypes.Email)?.Trim().ToLowerInvariant()
             : null;
 
         var form = await db.Forms
@@ -101,14 +101,15 @@ public class SurveysController(SurveyMakerDbContext db) : ControllerBase
         if (form is null) return NotFound();
 
         // Unpublished forms are only visible to their creator (preview mode)
-        if (!form.Published && form.FormCreatorEmail != callerEmail)
+        var creatorEmail = form.FormCreatorEmail?.Trim().ToLowerInvariant();
+        if (!form.Published && creatorEmail != callerEmail)
             return NotFound();
 
         // Private: must be authenticated and in the allowed list (or be creator)
         if (form.SecurityTypeId == 2)
         {
             if (callerEmail is null) return Forbid();
-            var allowed = form.FormCreatorEmail == callerEmail
+            var allowed = creatorEmail == callerEmail
                        || form.AllowedUsers.Any(u => u.UserEmail == callerEmail);
             if (!allowed) return Forbid();
         }
@@ -149,14 +150,14 @@ public class SurveysController(SurveyMakerDbContext db) : ControllerBase
         if (form.SecurityTypeId == 2)
         {
             if (User.Identity?.IsAuthenticated != true) return Forbid();
-            var email = User.FindFirstValue(ClaimTypes.Email);
-            var allowed = form.FormCreatorEmail == email
+            var email = User.FindFirstValue(ClaimTypes.Email)?.Trim().ToLowerInvariant();
+            var allowed = string.Equals(form.FormCreatorEmail, email, StringComparison.OrdinalIgnoreCase)
                        || form.AllowedUsers.Any(u => u.UserEmail == email);
             if (!allowed) return Forbid();
         }
 
         var userEmail = User.Identity?.IsAuthenticated == true
-            ? User.FindFirstValue(ClaimTypes.Email)
+            ? User.FindFirstValue(ClaimTypes.Email)?.Trim().ToLowerInvariant()
             : null;
 
         var submission = new FormSubmission

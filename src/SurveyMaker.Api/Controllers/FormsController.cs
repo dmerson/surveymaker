@@ -13,8 +13,9 @@ namespace SurveyMaker.Api.Controllers;
 public class FormsController(SurveyMakerDbContext db) : ControllerBase
 {
     private string UserEmail =>
-        User.FindFirstValue(ClaimTypes.Email)
-        ?? throw new InvalidOperationException("Authenticated user has no email claim.");
+        (User.FindFirstValue(ClaimTypes.Email)
+        ?? throw new InvalidOperationException("Authenticated user has no email claim."))
+        .Trim().ToLowerInvariant();
 
     // ── List ─────────────────────────────────────────────────────────────────
 
