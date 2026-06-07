@@ -217,8 +217,8 @@ export class TakeSurvey implements OnInit {
     }
 
     const answerMap = this.answers();
-    const payload: SurveyAnswerPayload[] = survey.allQuestions
-      .map(q => {
+    const payload = survey.allQuestions
+      .map((q): SurveyAnswerPayload | null => {
         const raw = answerMap[q.questionId];
         if (raw == null || raw === '' || (Array.isArray(raw) && raw.length === 0)) {
           return null;
