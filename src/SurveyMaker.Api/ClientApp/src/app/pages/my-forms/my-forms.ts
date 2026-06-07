@@ -1,11 +1,12 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { SlicePipe } from '@angular/common';
 import { FormService } from '../../services/form.service';
 import { FormSummary } from '../../models/form.model';
 
 @Component({
   selector: 'app-my-forms',
-  imports: [RouterLink],
+  imports: [RouterLink, SlicePipe],
   templateUrl: './my-forms.html',
   styleUrl: './my-forms.scss'
 })

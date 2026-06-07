@@ -5,7 +5,7 @@ using SurveyMaker.Infrastructure.Data;
 namespace SurveyMaker.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/question-types")]
 public class QuestionTypesController(SurveyMakerDbContext db) : ControllerBase
 {
     [HttpGet]
