@@ -13,12 +13,19 @@ const T = {
   TEXT: 1, LONG_TEXT: 2, NUMBER: 3,
   RADIO: 4, CHECKBOX: 5, DROPDOWN: 6,
   DATE: 7, TIME: 8, DATETIME: 9,
+  IMAGE: 10, PDF: 11,
   RATING: 12, LIKERT: 13, RANGE: 14,
   EMAIL: 15, PHONE: 16, URL: 17,
   NPS: 18, YES_NO: 19,
   CHECKBOX_VAL: 20, DROPDOWN_VAL: 21, RADIO_VAL: 22,
   CALCULATION: 24
 } as const;
+
+interface FileAnswer {
+  fileName: string;
+  contentType: string;
+  dataBase64: string;
+}
 
 @Component({
   selector: 'app-take-survey',
@@ -43,6 +50,8 @@ export class TakeSurvey implements OnInit {
   answers     = signal<Record<number, string | string[]>>({});
   // free-text for "Other" option, keyed by questionId
   otherText   = signal<Record<number, string>>({});
+  // file answers: questionId → FileAnswer
+  fileAnswers = signal<Record<number, FileAnswer | null>>({});
   // error map: questionId → error message or null
   errors      = signal<Record<number, string | null>>({});
 
@@ -139,6 +148,31 @@ export class TakeSurvey implements OnInit {
     this.otherText.update(m => ({ ...m, [questionId]: text }));
   }
 
+  // ── File upload helpers ───────────────────────────────────────────────────
+
+  getFileAnswer(questionId: number): FileAnswer | null {
+    return this.fileAnswers()[questionId] ?? null;
+  }
+
+  onFileSelected(questionId: number, event: Event): void {
+    const file = (event.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      const base64 = dataUrl.split(',')[1];
+      this.fileAnswers.update(m => ({
+        ...m, [questionId]: { fileName: file.name, contentType: file.type, dataBase64: base64 }
+      }));
+      this.errors.update(e => ({ ...e, [questionId]: null }));
+    };
+    reader.readAsDataURL(file);
+  }
+
+  removeFile(questionId: number): void {
+    this.fileAnswers.update(m => ({ ...m, [questionId]: null }));
+  }
+
   // ── Type-specific helpers (used in template) ───────────────────────────────
 
   strOpts(q: LoadedQuestion): string[] {
@@ -220,6 +254,12 @@ export class TakeSurvey implements OnInit {
   }
 
   private validate(q: LoadedQuestion): string | null {
+    if (q.questionTypeId === T.IMAGE || q.questionTypeId === T.PDF) {
+      if (q.attrs.required && !this.fileAnswers()[q.questionId])
+        return 'Please upload a file.';
+      return null;
+    }
+
     const raw = this.answers()[q.questionId];
     const { required, min, max } = q.attrs;
     const isEmpty = raw == null || raw === ''
@@ -309,6 +349,15 @@ export class TakeSurvey implements OnInit {
         if (q.questionTypeId === T.CALCULATION) {
           const val = this.calcValue(q);
           return val !== '—' ? { questionId: q.questionId, answerScalar: val } : null;
+        }
+        // File questions: base64 payload
+        if (q.questionTypeId === T.IMAGE || q.questionTypeId === T.PDF) {
+          const fa = this.fileAnswers()[q.questionId];
+          if (!fa) return null;
+          return {
+            questionId: q.questionId,
+            answerJson: JSON.stringify({ fileName: fa.fileName, contentType: fa.contentType, data: fa.dataBase64 })
+          };
         }
         const raw = answerMap[q.questionId];
         if (raw == null || raw === '' || (Array.isArray(raw) && raw.length === 0)) {

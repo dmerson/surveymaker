@@ -14,6 +14,7 @@ public class SurveyMakerDbContext(DbContextOptions<SurveyMakerDbContext> options
     public DbSet<QuestionType> QuestionTypes => Set<QuestionType>();
     public DbSet<Question> Questions => Set<Question>();
     public DbSet<Answer> Answers => Set<Answer>();
+    public DbSet<AnswerFile> AnswerFiles => Set<AnswerFile>();
     public DbSet<FormAllowedUser> FormAllowedUsers => Set<FormAllowedUser>();
     public DbSet<FormSubmission> FormSubmissions => Set<FormSubmission>();
 

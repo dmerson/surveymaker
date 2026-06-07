@@ -78,6 +78,7 @@ export interface DashboardData {
 export interface AnswerGridQuestion {
   questionId: number;
   text: string;
+  questionTypeId: number;
 }
 
 export interface AnswerGridRow {

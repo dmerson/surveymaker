@@ -37,7 +37,22 @@
               <td class="col-respondent">{{ row.userEmail ?? 'Anonymous' }}</td>
               <td class="col-date">{{ row.submittedAt ? (row.submittedAt | slice:0:10) : '—' }}</td>
               @for (cell of row.cells; track $index) {
-                <td [title]="cell ?? ''" class="col-answer">{{ cell ?? '' }}</td>
+                <td class="col-answer">
+                  @if (questions()[$index]?.questionTypeId === 10 && cell) {
+                    <a [href]="'/api/answers/files/' + cell" target="_blank" rel="noopener">
+                      <img class="grid-thumb"
+                        [src]="'/api/answers/files/' + cell"
+                        alt="Image" loading="lazy" />
+                    </a>
+                  } @else if (questions()[$index]?.questionTypeId === 11 && cell) {
+                    <a [href]="'/api/answers/files/' + cell"
+                       target="_blank" rel="noopener" class="grid-pdf-link">
+                      PDF
+                    </a>
+                  } @else {
+                    <span [title]="cell ?? ''">{{ cell ?? '' }}</span>
+                  }
+                </td>
               }
             </tr>
           }

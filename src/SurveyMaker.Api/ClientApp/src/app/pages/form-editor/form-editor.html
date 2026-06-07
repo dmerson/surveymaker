@@ -69,6 +69,9 @@
       <button class="btn btn-outline btn-sm" [disabled]="fsSaving()" (click)="saveSettings()">
         @if (fsSaving()) { Saving… } @else if (fsSaved()) { Saved ✓ } @else { Save Settings }
       </button>
+      @if (fsError()) {
+        <div class="fs-error">{{ fsError() }}</div>
+      }
     </div>
 
     @if (fsSecurityTypeId() === 2) {
@@ -95,7 +98,7 @@
             [ngModel]="aqTypeId()"
             (ngModelChange)="onTypeChange($event)">
             <option value="0" disabled>Select type…</option>
-            @for (qt of questionTypes(); track qt.questionTypeId) {
+            @for (qt of filteredQuestionTypes(); track qt.questionTypeId) {
               <option [value]="qt.questionTypeId">{{ qt.questionTypeName }}</option>
             }
           </select>

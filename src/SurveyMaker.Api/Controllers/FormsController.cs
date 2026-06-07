@@ -257,7 +257,7 @@ public class FormsController(SurveyMakerDbContext db) : ControllerBase
             .Where(q => q.Section.FormId == formId)
             .OrderBy(q => q.Section.Order)
             .ThenBy(q => q.Order)
-            .Select(q => new { questionId = q.QuestionId, text = q.Text })
+            .Select(q => new { questionId = q.QuestionId, text = q.Text, questionTypeId = q.QuestionTypeId })
             .ToListAsync();
 
         var questionIds = questions.Select(q => q.questionId).ToList();

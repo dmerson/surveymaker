@@ -65,6 +65,7 @@ export class FormEditor implements OnInit {
   fsSecurityTypeId = signal(1);
   fsSaving         = signal(false);
   fsSaved          = signal(false);
+  fsError          = signal('');
 
   // ── Delete form ───────────────────────────────────────────────────────────
   showDeleteConfirm = signal(false);
@@ -85,6 +86,12 @@ export class FormEditor implements OnInit {
       hasScale:       [13].includes(id),
       isFormula:      id === 24,
     };
+  });
+
+  filteredQuestionTypes = computed(() => {
+    const types = this.questionTypes();
+    if (this.fsSecurityTypeId() === 2) return types;
+    return types.filter(t => t.questionTypeId !== 10 && t.questionTypeId !== 11);
   });
 
   private static readonly NUMERIC_TYPE_IDS = new Set([3, 12, 13, 14, 18, 20, 21, 22]);
@@ -429,6 +436,28 @@ export class FormEditor implements OnInit {
   saveSettings(): void {
     this.fsSaving.set(true);
     this.fsSaved.set(false);
+    this.fsError.set('');
+
+    const f = this.form();
+    if (f) {
+      const hasFileQ = f.sections
+        .flatMap(s => s.questions)
+        .some(q => q.questionTypeId === 10 || q.questionTypeId === 11);
+      if (hasFileQ && this.fsSecurityTypeId() !== 2) {
+        this.fsError.set('Forms with image or PDF questions must use Private access.');
+        this.fsSaving.set(false);
+        return;
+      }
+      if (hasFileQ) {
+        const q = parseInt(this.fsQuota(), 10);
+        if (isNaN(q) || q < 1 || q > 25) {
+          this.fsError.set('Forms with image or PDF questions require a quota between 1 and 25.');
+          this.fsSaving.set(false);
+          return;
+        }
+      }
+    }
+
     const quota = parseInt(this.fsQuota(), 10);
 
     this.formService.patchSettings(

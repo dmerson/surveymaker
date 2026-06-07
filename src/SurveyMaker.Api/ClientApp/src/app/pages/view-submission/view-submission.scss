@@ -129,6 +129,27 @@
   &:hover { text-decoration: underline; }
 }
 
+.sv-file-thumb {
+  max-width: 240px;
+  max-height: 180px;
+  object-fit: contain;
+  border-radius: 6px;
+  border: 1px solid var(--c-border);
+  display: block;
+}
+
+.sv-pdf-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #dc2626;
+  text-decoration: none;
+
+  &:hover { text-decoration: underline; }
+}
+
 // ── Option pills ──────────────────────────────────────────────────────
 .sv-answer-opts {
   display: flex;

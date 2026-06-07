@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,6 +12,10 @@ namespace SurveyMaker.Api.Controllers;
 [Route("api/surveys")]
 public class SurveysController(SurveyMakerDbContext db) : ControllerBase
 {
+    private static readonly HashSet<int> FileTypeIds = [10, 11];
+    private const long MaxFileBytes = 4_718_592L; // 4.5 MB
+    private const int MaxFileQuota  = 25;
+
     // ── My surveys (requires auth) ────────────────────────────────────────────
 
     [HttpGet("mine")]
@@ -19,7 +24,6 @@ public class SurveysController(SurveyMakerDbContext db) : ControllerBase
     {
         var email = User.FindFirstValue(ClaimTypes.Email)!.Trim().ToLowerInvariant();
 
-        // Completed submissions (newest first)
         var completed = await db.FormSubmissions
             .Where(s => s.UserEmail == email && s.IsComplete)
             .OrderByDescending(s => s.SubmittedAt)
@@ -32,7 +36,6 @@ public class SurveysController(SurveyMakerDbContext db) : ControllerBase
             })
             .ToListAsync();
 
-        // In-progress submissions (not yet complete, newest first)
         var inProgress = await db.FormSubmissions
             .Where(s => s.UserEmail == email && !s.IsComplete)
             .OrderByDescending(s => s.StartedAt)
@@ -45,7 +48,6 @@ public class SurveysController(SurveyMakerDbContext db) : ControllerBase
             })
             .ToListAsync();
 
-        // Surveys explicitly assigned to this user
         var assigned = await db.FormAllowedUsers
             .Where(a => a.UserEmail == email && a.Form.Published)
             .OrderByDescending(a => a.Form.UpdatedAt)
@@ -100,12 +102,10 @@ public class SurveysController(SurveyMakerDbContext db) : ControllerBase
 
         if (form is null) return NotFound();
 
-        // Unpublished forms are only visible to their creator (preview mode)
         var creatorEmail = form.FormCreatorEmail?.Trim().ToLowerInvariant();
         if (!form.Published && creatorEmail != callerEmail)
             return NotFound();
 
-        // Private: must be authenticated and in the allowed list (or be creator)
         if (form.SecurityTypeId == 2)
         {
             if (callerEmail is null) return Forbid();
@@ -148,12 +148,13 @@ public class SurveysController(SurveyMakerDbContext db) : ControllerBase
 
         var form = await db.Forms
             .Include(f => f.AllowedUsers)
+            .Include(f => f.Sections)
+                .ThenInclude(s => s.Questions)
             .FirstOrDefaultAsync(f => f.FormId == formId);
         if (form is null) return NotFound();
 
         var creatorEmail = form.FormCreatorEmail?.Trim().ToLowerInvariant();
 
-        // Unpublished: only the creator can submit (preview/testing mode)
         if (!form.Published && creatorEmail != callerEmail)
             return NotFound();
 
@@ -163,6 +164,30 @@ public class SurveysController(SurveyMakerDbContext db) : ControllerBase
             var allowed = creatorEmail == callerEmail
                        || form.AllowedUsers.Any(u => u.UserEmail == callerEmail);
             if (!allowed) return Forbid();
+        }
+
+        // Build question-type lookup for file handling
+        var questionTypeMap = form.Sections
+            .SelectMany(s => s.Questions)
+            .ToDictionary(q => q.QuestionId, q => q.QuestionTypeId);
+
+        bool hasFileQuestions = questionTypeMap.Values.Any(t => FileTypeIds.Contains(t));
+
+        // Forms with file questions must be private with quota ≤ 25
+        if (hasFileQuestions)
+        {
+            if (form.SecurityTypeId != 2)
+                return BadRequest(new { error = "File upload questions are only available on private forms." });
+            if (!form.Quota.HasValue || form.Quota.Value > MaxFileQuota)
+                return BadRequest(new { error = $"Forms with file questions require a quota of {MaxFileQuota} or fewer." });
+        }
+
+        // Enforce quota
+        if (form.Quota.HasValue)
+        {
+            var count = await db.FormSubmissions.CountAsync(s => s.FormId == formId && s.IsComplete);
+            if (count >= form.Quota.Value)
+                return BadRequest(new { error = "This survey has reached its response limit." });
         }
 
         var submission = new FormSubmission
@@ -176,23 +201,73 @@ public class SurveysController(SurveyMakerDbContext db) : ControllerBase
         db.FormSubmissions.Add(submission);
         await db.SaveChangesAsync();
 
-        var answers = request.Answers
-            .Where(a => !string.IsNullOrWhiteSpace(a.AnswerScalar)
-                     || !string.IsNullOrWhiteSpace(a.AnswerJson))
-            .Select(a => new Answer
-            {
-                SubmissionId  = submission.SubmissionId,
-                QuestionId    = a.QuestionId,
-                AnswerScalar  = a.AnswerScalar?.Trim(),
-                AnswerJson    = a.AnswerJson
-            })
-            .ToList();
+        var answers     = new List<Answer>();
+        var answerFiles = new List<AnswerFile>();
+        var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
-        if (answers.Count > 0)
+        foreach (var a in request.Answers)
         {
-            db.Answers.AddRange(answers);
-            await db.SaveChangesAsync();
+            if (string.IsNullOrWhiteSpace(a.AnswerScalar) && string.IsNullOrWhiteSpace(a.AnswerJson))
+                continue;
+
+            questionTypeMap.TryGetValue(a.QuestionId, out var typeId);
+
+            if (FileTypeIds.Contains(typeId) && !string.IsNullOrWhiteSpace(a.AnswerJson))
+            {
+                FilePayload? payload;
+                try { payload = JsonSerializer.Deserialize<FilePayload>(a.AnswerJson, jsonOptions); }
+                catch { continue; }
+
+                if (payload is null || string.IsNullOrWhiteSpace(payload.Data)) continue;
+
+                bool validType = typeId == 10
+                    ? payload.ContentType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)
+                    : payload.ContentType.Equals("application/pdf", StringComparison.OrdinalIgnoreCase);
+
+                if (!validType)
+                    return BadRequest(new { error = $"Invalid file type for question {a.QuestionId}." });
+
+                byte[] fileBytes;
+                try { fileBytes = Convert.FromBase64String(payload.Data); }
+                catch { return BadRequest(new { error = $"Invalid file data for question {a.QuestionId}." }); }
+
+                if (fileBytes.Length > MaxFileBytes)
+                    return BadRequest(new { error = $"File for question {a.QuestionId} exceeds the 4.5 MB limit." });
+
+                var fileId = Guid.NewGuid();
+                answerFiles.Add(new AnswerFile
+                {
+                    FileId        = fileId,
+                    SubmissionId  = submission.SubmissionId,
+                    QuestionId    = a.QuestionId,
+                    FileName      = payload.FileName ?? "upload",
+                    ContentType   = payload.ContentType,
+                    FileData      = fileBytes,
+                    FileSizeBytes = fileBytes.Length,
+                    UploadedAt    = DateTime.UtcNow
+                });
+                answers.Add(new Answer
+                {
+                    SubmissionId = submission.SubmissionId,
+                    QuestionId   = a.QuestionId,
+                    AnswerScalar = fileId.ToString()
+                });
+            }
+            else
+            {
+                answers.Add(new Answer
+                {
+                    SubmissionId = submission.SubmissionId,
+                    QuestionId   = a.QuestionId,
+                    AnswerScalar = a.AnswerScalar?.Trim(),
+                    AnswerJson   = a.AnswerJson
+                });
+            }
         }
+
+        if (answerFiles.Count > 0) db.AnswerFiles.AddRange(answerFiles);
+        if (answers.Count > 0)     db.Answers.AddRange(answers);
+        if (answerFiles.Count > 0 || answers.Count > 0) await db.SaveChangesAsync();
 
         return Ok(new { submissionId = submission.SubmissionId });
     }
@@ -200,3 +275,4 @@ public class SurveysController(SurveyMakerDbContext db) : ControllerBase
 
 public record SurveyAnswerItem(int QuestionId, string? AnswerScalar, string? AnswerJson);
 public record SurveySubmitRequest(List<SurveyAnswerItem> Answers);
+file record FilePayload(string FileName, string ContentType, string Data);
