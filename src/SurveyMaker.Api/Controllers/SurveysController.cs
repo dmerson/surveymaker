@@ -142,28 +142,33 @@ public class SurveysController(SurveyMakerDbContext db) : ControllerBase
     [HttpPost("{formId:guid}/submit")]
     public async Task<IActionResult> Submit(Guid formId, [FromBody] SurveySubmitRequest request)
     {
+        var callerEmail = User.Identity?.IsAuthenticated == true
+            ? User.FindFirstValue(ClaimTypes.Email)?.Trim().ToLowerInvariant()
+            : null;
+
         var form = await db.Forms
             .Include(f => f.AllowedUsers)
-            .FirstOrDefaultAsync(f => f.FormId == formId && f.Published);
+            .FirstOrDefaultAsync(f => f.FormId == formId);
         if (form is null) return NotFound();
+
+        var creatorEmail = form.FormCreatorEmail?.Trim().ToLowerInvariant();
+
+        // Unpublished: only the creator can submit (preview/testing mode)
+        if (!form.Published && creatorEmail != callerEmail)
+            return NotFound();
 
         if (form.SecurityTypeId == 2)
         {
-            if (User.Identity?.IsAuthenticated != true) return Forbid();
-            var email = User.FindFirstValue(ClaimTypes.Email)?.Trim().ToLowerInvariant();
-            var allowed = string.Equals(form.FormCreatorEmail, email, StringComparison.OrdinalIgnoreCase)
-                       || form.AllowedUsers.Any(u => u.UserEmail == email);
+            if (callerEmail is null) return Forbid();
+            var allowed = creatorEmail == callerEmail
+                       || form.AllowedUsers.Any(u => u.UserEmail == callerEmail);
             if (!allowed) return Forbid();
         }
-
-        var userEmail = User.Identity?.IsAuthenticated == true
-            ? User.FindFirstValue(ClaimTypes.Email)?.Trim().ToLowerInvariant()
-            : null;
 
         var submission = new FormSubmission
         {
             FormId      = form.FormId,
-            UserEmail   = userEmail,
+            UserEmail   = callerEmail,
             StartedAt   = DateTime.UtcNow,
             SubmittedAt = DateTime.UtcNow,
             IsComplete  = true
