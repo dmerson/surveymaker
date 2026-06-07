@@ -12,6 +12,7 @@ import { TakeSurvey } from './pages/take-survey/take-survey';
 import { FormAnswers } from './pages/form-answers/form-answers';
 import { ViewSubmission } from './pages/view-submission/view-submission';
 import { AllAnswers } from './pages/all-answers/all-answers';
+import { AllowedUsers } from './pages/allowed-users/allowed-users';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', component: Home },
@@ -28,6 +29,7 @@ export const routes: Routes = [
       { path: 'forms/:id/answers',                           component: FormAnswers },
       { path: 'forms/:id/answers/:submissionId',             component: ViewSubmission },
       { path: 'forms/:id/all-answers',                       component: AllAnswers },
+      { path: 'forms/:id/allowed-users',                     component: AllowedUsers },
       { path: 'my-surveys',                                  component: MySurveys },
       { path: 'public-survey',                               component: PublicSurvey },
     ]

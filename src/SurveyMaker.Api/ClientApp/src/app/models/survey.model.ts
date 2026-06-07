@@ -42,6 +42,33 @@ export interface ScoredOption {
   value: number;
 }
 
+export interface MySurveyCompleted {
+  submissionId: string;
+  formId: string;
+  formName: string;
+  submittedAt: string | null;
+}
+
+export interface MySurveyInProgress {
+  submissionId: string;
+  formId: string;
+  formName: string;
+  startedAt: string;
+}
+
+export interface MySurveyAssigned {
+  formId: string;
+  formName: string;
+  description?: string;
+  questionCount: number;
+}
+
+export interface MySurveysData {
+  completed: MySurveyCompleted[];
+  inProgress: MySurveyInProgress[];
+  assigned: MySurveyAssigned[];
+}
+
 export interface SurveyAnswerPayload {
   questionId: number;
   answerScalar?: string;

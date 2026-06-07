@@ -50,6 +50,31 @@ export interface SubmissionQuestionDetail {
   answerJson?: string;
 }
 
+export interface DashboardFormSummary {
+  formId: string;
+  formName: string;
+  securityTypeId: number;
+  published: boolean;
+  createdAt: string;
+}
+
+export interface DashboardActivity {
+  submissionId: string;
+  formId: string;
+  formName: string;
+  userEmail: string | null;
+  submittedAt: string | null;
+  isComplete: boolean;
+}
+
+export interface DashboardData {
+  myFormsCount: number;
+  responsesReceived: number;
+  surveysCompleted: number;
+  recentForms: DashboardFormSummary[];
+  recentActivity: DashboardActivity[];
+}
+
 export interface AnswerGridQuestion {
   questionId: number;
   text: string;

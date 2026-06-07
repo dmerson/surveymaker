@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SurveyMaker.Infrastructure.Data;
@@ -10,6 +11,56 @@ namespace SurveyMaker.Api.Controllers;
 [Route("api/surveys")]
 public class SurveysController(SurveyMakerDbContext db) : ControllerBase
 {
+    // ── My surveys (requires auth) ────────────────────────────────────────────
+
+    [HttpGet("mine")]
+    [Authorize]
+    public async Task<IActionResult> GetMine()
+    {
+        var email = User.FindFirstValue(ClaimTypes.Email)!;
+
+        // Completed submissions (newest first)
+        var completed = await db.FormSubmissions
+            .Where(s => s.UserEmail == email && s.IsComplete)
+            .OrderByDescending(s => s.SubmittedAt)
+            .Select(s => new
+            {
+                submissionId  = s.SubmissionId,
+                formId        = s.FormId,
+                formName      = s.Form.FormName,
+                submittedAt   = s.SubmittedAt
+            })
+            .ToListAsync();
+
+        // In-progress submissions (not yet complete, newest first)
+        var inProgress = await db.FormSubmissions
+            .Where(s => s.UserEmail == email && !s.IsComplete)
+            .OrderByDescending(s => s.StartedAt)
+            .Select(s => new
+            {
+                submissionId = s.SubmissionId,
+                formId       = s.FormId,
+                formName     = s.Form.FormName,
+                startedAt    = s.StartedAt
+            })
+            .ToListAsync();
+
+        // Surveys explicitly assigned to this user
+        var assigned = await db.FormAllowedUsers
+            .Where(a => a.UserEmail == email && a.Form.Published)
+            .OrderByDescending(a => a.Form.UpdatedAt)
+            .Select(a => new
+            {
+                formId        = a.FormId,
+                formName      = a.Form.FormName,
+                description   = a.Form.Description,
+                questionCount = a.Form.Sections.SelectMany(s => s.Questions).Count()
+            })
+            .ToListAsync();
+
+        return Ok(new { completed, inProgress, assigned });
+    }
+
     // ── List public surveys ───────────────────────────────────────────────────
 
     [HttpGet]

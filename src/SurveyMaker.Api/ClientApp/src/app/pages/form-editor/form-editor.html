@@ -48,10 +48,31 @@
         <input class="quota-input" type="number" min="1" placeholder="No limit"
           [ngModel]="fsQuota()" (ngModelChange)="fsQuota.set($event)" />
       </div>
+      <div class="setting-security">
+        <label class="setting-label">Access</label>
+        <select class="security-select"
+          [ngModel]="fsSecurityTypeId()" (ngModelChange)="fsSecurityTypeId.set(+$event)">
+          <option [value]="1">Public — listed and open to anyone</option>
+          <option [value]="3">URL Only — accessible by link, not listed</option>
+          <option [value]="2">Private — allowed users only</option>
+        </select>
+      </div>
       <button class="btn btn-outline btn-sm" [disabled]="fsSaving()" (click)="saveSettings()">
         @if (fsSaving()) { Saving… } @else if (fsSaved()) { Saved ✓ } @else { Save Settings }
       </button>
     </div>
+
+    @if (fsSecurityTypeId() === 2) {
+      <div class="access-notice">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+          <path fill-rule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clip-rule="evenodd"/>
+        </svg>
+        This form is private. Only users on the allowed list can access it.
+        <a [routerLink]="['/forms', f.formId, 'allowed-users']" class="access-link">
+          Manage allowed users →
+        </a>
+      </div>
+    }
 
     <!--
       Shared question form fields — rendered in both the inline edit panel

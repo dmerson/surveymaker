@@ -7,18 +7,116 @@
     <a routerLink="/public-survey" class="btn btn-accent">Browse Surveys</a>
   </div>
 
-  <div class="card">
-    <div class="empty-state">
-      <svg class="empty-icon" viewBox="0 0 64 64" fill="none">
-        <path d="M8 12 L8 56 L56 56 L56 12 Z" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/>
-        <path d="M8 22 L56 22" stroke="currentColor" stroke-width="2.5"/>
-        <line x1="20" y1="12" x2="20" y2="22" stroke="currentColor" stroke-width="2.5"/>
-        <line x1="44" y1="12" x2="44" y2="22" stroke="currentColor" stroke-width="2.5"/>
-        <path d="M20 36 C22 32 25 32 27 36 C29 40 32 40 34 36 C36 32 39 32 44 35" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
-      </svg>
-      <h3>No surveys completed yet</h3>
-      <p>Surveys you fill out will appear here so you can review your responses.</p>
-      <a routerLink="/public-survey" class="btn btn-primary" style="margin-top:0.5rem">Find a Survey to Take</a>
-    </div>
-  </div>
+  @if (loading()) {
+    <div class="loading-state">Loading…</div>
+
+  } @else if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+
+  } @else {
+
+    <!-- Assigned to me -->
+    <section class="survey-section">
+      <h2 class="section-heading">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"/></svg>
+        Assigned to Me
+        <span class="section-count">{{ assigned().length }}</span>
+      </h2>
+
+      @if (assigned().length === 0) {
+        <div class="section-empty">No surveys have been assigned to you.</div>
+      } @else {
+        <div class="survey-list">
+          @for (s of assigned(); track s.formId) {
+            <div class="survey-row">
+              <div class="survey-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+                  <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+                  <rect x="9" y="3" width="6" height="4" rx="1"/>
+                  <line x1="9" y1="12" x2="15" y2="12" stroke-linecap="round"/>
+                  <line x1="9" y1="16" x2="13" y2="16" stroke-linecap="round"/>
+                </svg>
+              </div>
+              <div class="survey-info">
+                <div class="survey-title">{{ s.formName }}</div>
+                <div class="survey-meta">
+                  {{ s.questionCount }} question{{ s.questionCount !== 1 ? 's' : '' }}
+                  @if (s.description) { · {{ s.description | slice:0:60 }}{{ s.description.length > 60 ? '…' : '' }} }
+                </div>
+              </div>
+              <a [routerLink]="['/survey', s.formId]" class="btn btn-primary btn-sm">Take Survey</a>
+            </div>
+          }
+        </div>
+      }
+    </section>
+
+    <!-- In progress -->
+    <section class="survey-section">
+      <h2 class="section-heading">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/></svg>
+        In Progress
+        <span class="section-count">{{ inProgress().length }}</span>
+      </h2>
+
+      @if (inProgress().length === 0) {
+        <div class="section-empty">No surveys in progress.</div>
+      } @else {
+        <div class="survey-list">
+          @for (s of inProgress(); track s.submissionId) {
+            <div class="survey-row">
+              <div class="survey-icon survey-icon--progress">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+                  <circle cx="12" cy="12" r="10"/>
+                  <polyline points="12 6 12 12 16 14"/>
+                </svg>
+              </div>
+              <div class="survey-info">
+                <div class="survey-title">{{ s.formName }}</div>
+                <div class="survey-meta">Started {{ s.startedAt | slice:0:10 }}</div>
+              </div>
+              <span class="survey-status incomplete">In Progress</span>
+              <a [routerLink]="['/survey', s.formId]" class="btn btn-outline btn-sm">Continue</a>
+            </div>
+          }
+        </div>
+      }
+    </section>
+
+    <!-- Completed -->
+    <section class="survey-section">
+      <h2 class="section-heading">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+        Completed
+        <span class="section-count">{{ completed().length }}</span>
+      </h2>
+
+      @if (completed().length === 0) {
+        <div class="section-empty">
+          You have not completed any surveys yet.
+          <a routerLink="/public-survey" class="inline-link">Find a survey to take →</a>
+        </div>
+      } @else {
+        <div class="survey-list">
+          @for (s of completed(); track s.submissionId) {
+            <div class="survey-row">
+              <div class="survey-icon survey-icon--done">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+                  <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/>
+                  <rect x="9" y="3" width="6" height="4" rx="1"/>
+                  <polyline points="9 12 11 14 15 10"/>
+                </svg>
+              </div>
+              <div class="survey-info">
+                <div class="survey-title">{{ s.formName }}</div>
+                <div class="survey-meta">Submitted {{ s.submittedAt ? (s.submittedAt | slice:0:10) : '—' }}</div>
+              </div>
+              <span class="survey-status complete">Complete</span>
+            </div>
+          }
+        </div>
+      }
+    </section>
+
+  }
 </div>

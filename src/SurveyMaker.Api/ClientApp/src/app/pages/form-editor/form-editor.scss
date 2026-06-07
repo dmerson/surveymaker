@@ -133,6 +133,48 @@
 
 .btn-sm { padding: 0.4rem 0.85rem; font-size: 0.82rem; }
 
+.setting-security {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.security-select {
+  padding: 0.35rem 0.6rem;
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-family: inherit;
+  background: var(--c-white);
+  color: var(--c-text);
+  cursor: pointer;
+  &:focus { outline: none; border-color: var(--c-teal); }
+}
+
+.access-notice {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--c-foam);
+  border: 1px solid var(--c-teal);
+  border-radius: var(--radius-sm);
+  padding: 0.6rem 1rem;
+  font-size: 0.875rem;
+  color: var(--c-deep);
+  margin-bottom: 1.25rem;
+
+  svg { color: var(--c-teal); flex-shrink: 0; }
+}
+
+.access-link {
+  color: var(--c-teal);
+  font-weight: 600;
+  text-decoration: none;
+  margin-left: 0.25rem;
+  white-space: nowrap;
+  &:hover { text-decoration: underline; }
+}
+
 // ── Section card ──────────────────────────────────────────────────────
 .section-card {
   background: var(--c-white);

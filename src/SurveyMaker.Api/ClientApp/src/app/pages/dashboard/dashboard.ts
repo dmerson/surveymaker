@@ -1,9 +1,9 @@
-import { Component, OnInit, computed, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { SlicePipe } from '@angular/common';
 import { AuthService } from '../../services/auth.service';
 import { FormService } from '../../services/form.service';
-import { FormSummary } from '../../models/form.model';
+import { DashboardData, DashboardFormSummary, DashboardActivity } from '../../models/form.model';
 
 @Component({
   selector: 'app-dashboard',
@@ -17,11 +17,16 @@ export class Dashboard implements OnInit {
 
   readonly user = this.authService.currentUser;
 
-  forms        = signal<FormSummary[]>([]);
-  formsLoading = signal(true);
+  fromDate = signal(this.defaultFrom());
+  toDate   = signal(this.today());
+  loading  = signal(true);
+  error    = signal('');
 
-  recentForms = computed(() => this.forms().slice(0, 5));
-  formCount   = computed(() => this.forms().length);
+  myFormsCount      = signal(0);
+  responsesReceived = signal(0);
+  surveysCompleted  = signal(0);
+  recentForms       = signal<DashboardFormSummary[]>([]);
+  recentActivity    = signal<DashboardActivity[]>([]);
 
   get firstName(): string {
     const name = this.user.name ?? this.user.email ?? 'there';
@@ -36,9 +41,29 @@ export class Dashboard implements OnInit {
   }
 
   ngOnInit(): void {
-    this.formService.listForms().subscribe({
-      next:  forms => { this.forms.set(forms); this.formsLoading.set(false); },
-      error: ()    => { this.formsLoading.set(false); }
+    this.load();
+  }
+
+  onDateChange(): void {
+    this.load();
+  }
+
+  load(): void {
+    this.loading.set(true);
+    this.error.set('');
+    this.formService.getDashboard(this.fromDate(), this.toDate()).subscribe({
+      next: (data: DashboardData) => {
+        this.myFormsCount.set(data.myFormsCount);
+        this.responsesReceived.set(data.responsesReceived);
+        this.surveysCompleted.set(data.surveysCompleted);
+        this.recentForms.set(data.recentForms);
+        this.recentActivity.set(data.recentActivity);
+        this.loading.set(false);
+      },
+      error: () => {
+        this.error.set('Could not load dashboard data.');
+        this.loading.set(false);
+      }
     });
   }
 
@@ -48,5 +73,15 @@ export class Dashboard implements OnInit {
 
   securityClass(id: number): string {
     return id === 1 ? 'badge-public' : id === 2 ? 'badge-private' : 'badge-url';
+  }
+
+  private today(): string {
+    return new Date().toISOString().slice(0, 10);
+  }
+
+  private defaultFrom(): string {
+    const d = new Date();
+    d.setDate(d.getDate() - 29);
+    return d.toISOString().slice(0, 10);
   }
 }

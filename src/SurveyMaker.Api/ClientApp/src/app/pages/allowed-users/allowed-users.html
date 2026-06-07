@@ -1,0 +1,60 @@
+<div class="page-wrap">
+  <div class="page-header">
+    <div>
+      <a [routerLink]="['/forms', formId(), 'edit']" class="back-link">← Back to Editor</a>
+      <h1 class="page-title">Allowed Users</h1>
+      <p class="page-subtitle">Only users on this list can access the private survey.</p>
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+  }
+
+  <!-- Add user -->
+  <div class="add-card">
+    <h2 class="add-title">Add a user</h2>
+    <div class="add-row">
+      <input class="email-input" type="email" placeholder="user@example.com"
+             [ngModel]="newEmail()" (ngModelChange)="newEmail.set($event)"
+             (keydown)="onKeydown($event)"
+             [disabled]="adding()" />
+      <button class="btn btn-primary" (click)="add()" [disabled]="adding()">
+        @if (adding()) { Adding… } @else { Add User }
+      </button>
+    </div>
+    @if (addError()) {
+      <p class="add-error">{{ addError() }}</p>
+    }
+  </div>
+
+  <!-- User list -->
+  @if (loading()) {
+    <div class="loading-state">Loading…</div>
+
+  } @else if (users().length === 0) {
+    <div class="empty-card">
+      <p>No users have been added yet. Add an email address above to grant access.</p>
+    </div>
+
+  } @else {
+    <div class="users-card">
+      <div class="users-count">{{ users().length }} user{{ users().length !== 1 ? 's' : '' }} with access</div>
+      <ul class="user-list">
+        @for (user of users(); track user.formAllowedUserId) {
+          <li class="user-row">
+            <svg class="user-icon" viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+              <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"/>
+            </svg>
+            <span class="user-email">{{ user.userEmail }}</span>
+            <button class="remove-btn" (click)="remove(user)" title="Remove access">
+              <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
+                <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+              </svg>
+            </button>
+          </li>
+        }
+      </ul>
+    </div>
+  }
+</div>

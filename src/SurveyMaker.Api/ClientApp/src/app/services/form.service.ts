@@ -3,12 +3,16 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import {
   FormDetail, FormSummary, QuestionType, SectionDetail,
-  SubmissionsResponse, SubmissionDetail, AnswerGrid
+  SubmissionsResponse, SubmissionDetail, AnswerGrid, DashboardData
 } from '../models/form.model';
 
 @Injectable({ providedIn: 'root' })
 export class FormService {
   private readonly http = inject(HttpClient);
+
+  getDashboard(from: string, to: string): Observable<DashboardData> {
+    return this.http.get<DashboardData>(`/api/dashboard?from=${from}&to=${to}`);
+  }
 
   listForms(): Observable<FormSummary[]> {
     return this.http.get<FormSummary[]>('/api/forms');
@@ -28,11 +32,26 @@ export class FormService {
     description: string | undefined,
     randomizeOrder: boolean,
     quota: number | null,
-    published: boolean
+    published: boolean,
+    securityTypeId: number
   ): Observable<void> {
     return this.http.patch<void>(`/api/forms/${formId}`, {
-      formName, description, randomizeOrder, quota, published
+      formName, description, randomizeOrder, quota, published, securityTypeId
     });
+  }
+
+  listAllowedUsers(formId: string): Observable<{ formAllowedUserId: number; userEmail: string }[]> {
+    return this.http.get<{ formAllowedUserId: number; userEmail: string }[]>(
+      `/api/forms/${formId}/allowed-users`);
+  }
+
+  addAllowedUser(formId: string, userEmail: string): Observable<{ formAllowedUserId: number; userEmail: string }> {
+    return this.http.post<{ formAllowedUserId: number; userEmail: string }>(
+      `/api/forms/${formId}/allowed-users`, { userEmail });
+  }
+
+  removeAllowedUser(formId: string, allowedUserId: number): Observable<void> {
+    return this.http.delete<void>(`/api/forms/${formId}/allowed-users/${allowedUserId}`);
   }
 
   updateQuestion(

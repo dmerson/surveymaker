@@ -15,18 +15,36 @@
     </div>
   </div>
 
+  <!-- Date filter -->
+  <div class="filter-bar">
+    <span class="filter-label">Date range</span>
+    <div class="filter-inputs">
+      <input type="date" class="date-input"
+             [value]="fromDate()"
+             (change)="fromDate.set($any($event.target).value); onDateChange()" />
+      <span class="filter-sep">to</span>
+      <input type="date" class="date-input"
+             [value]="toDate()"
+             (change)="toDate.set($any($event.target).value); onDateChange()" />
+    </div>
+  </div>
+
+  @if (error()) {
+    <div class="error-banner">{{ error() }}</div>
+  }
+
   <!-- Stats -->
   <div class="stat-grid">
     <div class="stat-card">
-      <div class="stat-value">{{ formsLoading() ? '—' : formCount() }}</div>
+      <div class="stat-value">{{ loading() ? '—' : myFormsCount() }}</div>
       <div class="stat-label">My Forms</div>
     </div>
     <div class="stat-card">
-      <div class="stat-value">0</div>
+      <div class="stat-value">{{ loading() ? '—' : responsesReceived() }}</div>
       <div class="stat-label">Responses Received</div>
     </div>
     <div class="stat-card">
-      <div class="stat-value">0</div>
+      <div class="stat-value">{{ loading() ? '—' : surveysCompleted() }}</div>
       <div class="stat-label">Surveys Completed</div>
     </div>
   </div>
@@ -40,7 +58,7 @@
         <a routerLink="/my-forms" class="card-link">View all</a>
       </div>
 
-      @if (formsLoading()) {
+      @if (loading()) {
         <p class="dash-loading">Loading…</p>
 
       } @else if (recentForms().length === 0) {
@@ -51,8 +69,8 @@
             <line x1="18" y1="29" x2="34" y2="29" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
             <path d="M18 40 C21 36 24 36 27 40 C30 44 33 44 36 40" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" fill="none"/>
           </svg>
-          <h3>No forms yet</h3>
-          <p>Create your first form to start collecting responses.</p>
+          <h3>No forms in this period</h3>
+          <p>No forms were created in the selected date range.</p>
           <a routerLink="/create-form" class="btn btn-primary" style="margin-top:0.5rem">Create a Form</a>
         </div>
 
@@ -72,11 +90,6 @@
             </li>
           }
         </ul>
-        @if (formCount() > 5) {
-          <a routerLink="/my-forms" class="view-all-link">
-            View all {{ formCount() }} forms →
-          </a>
-        }
       }
     </div>
 
@@ -84,14 +97,41 @@
       <div class="card-head">
         <h2 class="card-title">Recent Activity</h2>
       </div>
-      <div class="empty-state">
-        <svg class="empty-icon" viewBox="0 0 64 64" fill="none">
-          <circle cx="32" cy="32" r="26" stroke="currentColor" stroke-width="2.5"/>
-          <path d="M32 18 L32 34 L42 40" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <h3>No recent activity</h3>
-        <p>Activity from your forms and surveys will appear here.</p>
-      </div>
+
+      @if (loading()) {
+        <p class="dash-loading">Loading…</p>
+
+      } @else if (recentActivity().length === 0) {
+        <div class="empty-state">
+          <svg class="empty-icon" viewBox="0 0 64 64" fill="none">
+            <circle cx="32" cy="32" r="26" stroke="currentColor" stroke-width="2.5"/>
+            <path d="M32 18 L32 34 L42 40" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <h3>No activity in this period</h3>
+          <p>Responses submitted in the selected date range will appear here.</p>
+        </div>
+
+      } @else {
+        <ul class="activity-list">
+          @for (item of recentActivity(); track item.submissionId) {
+            <li class="activity-item">
+              <div class="activity-main">
+                <a [routerLink]="['/forms', item.formId, 'answers', item.submissionId]"
+                   class="activity-form-name">{{ item.formName }}</a>
+                <span class="activity-email">{{ item.userEmail ?? 'Anonymous' }}</span>
+              </div>
+              <div class="activity-right">
+                <span class="activity-date">{{ item.submittedAt ? (item.submittedAt | slice:0:10) : '—' }}</span>
+                <span class="status-badge"
+                  [class.badge-complete]="item.isComplete"
+                  [class.badge-partial]="!item.isComplete">
+                  {{ item.isComplete ? 'Complete' : 'Partial' }}
+                </span>
+              </div>
+            </li>
+          }
+        </ul>
+      }
     </div>
 
   </div>

@@ -52,13 +52,14 @@ export class FormEditor implements OnInit {
   asError  = signal('');
 
   // ── Form settings (editable) ──────────────────────────────────────────────
-  fsFormName    = signal('');
-  fsDescription = signal('');
-  fsPublished   = signal(false);
-  fsRandomize   = signal(false);
-  fsQuota       = signal('');
-  fsSaving      = signal(false);
-  fsSaved       = signal(false);
+  fsFormName       = signal('');
+  fsDescription    = signal('');
+  fsPublished      = signal(false);
+  fsRandomize      = signal(false);
+  fsQuota          = signal('');
+  fsSecurityTypeId = signal(1);
+  fsSaving         = signal(false);
+  fsSaved          = signal(false);
 
   // ── Delete form ───────────────────────────────────────────────────────────
   showDeleteConfirm = signal(false);
@@ -95,6 +96,7 @@ export class FormEditor implements OnInit {
         this.fsPublished.set(detail.published);
         this.fsRandomize.set(detail.randomizeOrder);
         this.fsQuota.set(detail.quota ? String(detail.quota) : '');
+        this.fsSecurityTypeId.set(detail.securityTypeId);
         if (detail.sections.length > 0) {
           this.openAddPanel(detail.sections[0]);
         }
@@ -383,16 +385,18 @@ export class FormEditor implements OnInit {
       this.fsDescription() || undefined,
       this.fsRandomize(),
       isNaN(quota) || quota <= 0 ? null : quota,
-      this.fsPublished()
+      this.fsPublished(),
+      this.fsSecurityTypeId()
     ).subscribe({
       next: () => {
         const f = this.form()!;
         this.form.set({
           ...f,
-          formName:      this.fsFormName(),
-          description:   this.fsDescription() || undefined,
-          published:     this.fsPublished(),
+          formName:       this.fsFormName(),
+          description:    this.fsDescription() || undefined,
+          published:      this.fsPublished(),
           randomizeOrder: this.fsRandomize(),
+          securityTypeId: this.fsSecurityTypeId(),
         });
         this.fsSaving.set(false);
         this.fsSaved.set(true);

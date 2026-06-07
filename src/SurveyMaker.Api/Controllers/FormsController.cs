@@ -134,6 +134,7 @@ public class FormsController(SurveyMakerDbContext db) : ControllerBase
         form.RandomizeOrder = request.RandomizeOrder;
         form.Quota          = request.Quota > 0 ? request.Quota : null;
         form.Published      = request.Published;
+        form.SecurityTypeId = request.SecurityTypeId is 1 or 2 or 3 ? request.SecurityTypeId : form.SecurityTypeId;
         form.UpdatedAt      = DateTime.UtcNow;
 
         await db.SaveChangesAsync();
@@ -291,6 +292,62 @@ public class FormsController(SurveyMakerDbContext db) : ControllerBase
         return Ok(new { formId = form.FormId, formName = form.FormName, questions, rows });
     }
 
+    // ── Allowed users ─────────────────────────────────────────────────────────
+
+    [HttpGet("{formId:guid}/allowed-users")]
+    public async Task<IActionResult> ListAllowedUsers(Guid formId)
+    {
+        var formExists = await db.Forms
+            .AnyAsync(f => f.FormId == formId && f.FormCreatorEmail == UserEmail);
+        if (!formExists) return NotFound();
+
+        var users = await db.FormAllowedUsers
+            .Where(u => u.FormId == formId)
+            .OrderBy(u => u.UserEmail)
+            .Select(u => new { u.FormAllowedUserId, u.UserEmail })
+            .ToListAsync();
+
+        return Ok(users);
+    }
+
+    [HttpPost("{formId:guid}/allowed-users")]
+    public async Task<IActionResult> AddAllowedUser(Guid formId, [FromBody] AddAllowedUserRequest request)
+    {
+        var email = request.UserEmail?.Trim().ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(email))
+            return BadRequest(new { error = "Email is required." });
+
+        var formExists = await db.Forms
+            .AnyAsync(f => f.FormId == formId && f.FormCreatorEmail == UserEmail);
+        if (!formExists) return NotFound();
+
+        var alreadyExists = await db.FormAllowedUsers
+            .AnyAsync(u => u.FormId == formId && u.UserEmail == email);
+        if (alreadyExists)
+            return Conflict(new { error = "This user has already been added." });
+
+        var entry = new FormAllowedUser { FormId = formId, UserEmail = email };
+        db.FormAllowedUsers.Add(entry);
+        await db.SaveChangesAsync();
+
+        return Ok(new { entry.FormAllowedUserId, entry.UserEmail });
+    }
+
+    [HttpDelete("{formId:guid}/allowed-users/{allowedUserId:int}")]
+    public async Task<IActionResult> RemoveAllowedUser(Guid formId, int allowedUserId)
+    {
+        var entry = await db.FormAllowedUsers
+            .Include(u => u.Form)
+            .FirstOrDefaultAsync(u => u.FormAllowedUserId == allowedUserId
+                                   && u.FormId == formId
+                                   && u.Form.FormCreatorEmail == UserEmail);
+        if (entry is null) return NotFound();
+
+        db.FormAllowedUsers.Remove(entry);
+        await db.SaveChangesAsync();
+        return Ok();
+    }
+
     // ── Add section ───────────────────────────────────────────────────────────
 
     [HttpPost("{formId:guid}/sections")]
@@ -407,4 +464,5 @@ public class FormsController(SurveyMakerDbContext db) : ControllerBase
 public record CreateFormRequest(string FormName, string? Description, int SecurityTypeId = 1);
 public record AddQuestionRequest(int QuestionTypeId, string Text, int Order, string? QuestionAttributes);
 public record AddSectionRequest(string? SectionName, int Order);
-public record PatchFormRequest(string? FormName, string? Description, bool RandomizeOrder, int? Quota, bool Published);
+public record PatchFormRequest(string? FormName, string? Description, bool RandomizeOrder, int? Quota, bool Published, int SecurityTypeId = 1);
+public record AddAllowedUserRequest(string UserEmail);
