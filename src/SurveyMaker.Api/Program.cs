@@ -90,3 +90,6 @@ app.MapControllerRoute(
 app.MapFallbackToFile("index.html");
 
 app.Run();
+
+// Expose the generated Program class to the integration test project
+public partial class Program { }

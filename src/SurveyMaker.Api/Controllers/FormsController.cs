@@ -345,7 +345,8 @@ public class FormsController(SurveyMakerDbContext db) : ControllerBase
                                    && q.Section.Form.FormCreatorEmail == UserEmail);
         if (question is null) return NotFound();
 
-        await db.Answers.Where(a => a.QuestionId == questionId).ExecuteDeleteAsync();
+        var answers = await db.Answers.Where(a => a.QuestionId == questionId).ToListAsync();
+        db.Answers.RemoveRange(answers);
         db.Questions.Remove(question);
         await db.SaveChangesAsync();
         return Ok();
