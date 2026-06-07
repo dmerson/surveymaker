@@ -1,0 +1,334 @@
+.sv-loading, .sv-error {
+  text-align: center;
+  color: var(--c-text-light);
+  padding: 4rem 2rem;
+}
+.sv-error { color: #b91c1c; }
+
+// ── Thank-you screen ──────────────────────────────────────────────────
+.sv-done {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 5rem 2rem;
+  text-align: center;
+  color: var(--c-deep);
+
+  h2 { font-size: 1.6rem; font-weight: 700; margin: 1.25rem 0 0.5rem; }
+  p  { color: var(--c-text-light); font-size: 0.95rem; }
+}
+
+.sv-done-icon {
+  width: 72px; height: 72px;
+  color: var(--c-teal);
+}
+
+// ── Survey wrapper ────────────────────────────────────────────────────
+.sv-wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+// ── Intro card ────────────────────────────────────────────────────────
+.sv-intro {
+  background: linear-gradient(135deg, var(--c-deep) 0%, #07607e 100%);
+  border-radius: var(--radius-lg);
+  padding: 2rem 2.25rem;
+  margin-bottom: 2rem;
+  color: var(--c-white);
+}
+
+.sv-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 0 0.35rem;
+}
+
+.sv-desc {
+  color: var(--c-aqua);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+// ── Section heading ───────────────────────────────────────────────────
+.sv-section-title {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--c-deep);
+  border-left: 3px solid var(--c-teal);
+  padding-left: 0.75rem;
+  margin: 2rem 0 1rem;
+}
+
+// ── Question card ─────────────────────────────────────────────────────
+.sv-questions { display: flex; flex-direction: column; gap: 1.25rem; }
+
+.sv-question {
+  background: var(--c-white);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  padding: 1.5rem;
+  transition: border-color 0.15s;
+
+  &.has-error { border-color: #fca5a5; }
+}
+
+.sv-q-label {
+  display: flex;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  align-items: baseline;
+}
+
+.sv-q-num {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--c-teal);
+  min-width: 1.2rem;
+}
+
+.sv-q-text {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--c-deep);
+  flex: 1;
+}
+
+.sv-req { color: #dc2626; font-weight: 700; font-size: 0.85rem; }
+
+// ── Input elements ────────────────────────────────────────────────────
+.sv-input {
+  width: 100%;
+  padding: 0.6rem 0.85rem;
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  font-size: 0.925rem;
+  font-family: inherit;
+  color: var(--c-text);
+  background: var(--c-white);
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: var(--c-teal);
+    box-shadow: 0 0 0 3px rgba(0, 150, 199, 0.12);
+  }
+
+  &.sv-input-sm { max-width: 260px; }
+}
+
+.sv-textarea {
+  @extend .sv-input;
+  resize: vertical;
+  min-height: 100px;
+  line-height: 1.55;
+}
+
+.sv-select {
+  @extend .sv-input;
+  cursor: pointer;
+  appearance: auto;
+}
+
+// ── Radio / Checkbox groups ───────────────────────────────────────────
+.sv-radio-group, .sv-check-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.sv-radio-opt, .sv-check-opt {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.92rem;
+  color: var(--c-text);
+  cursor: pointer;
+
+  input { flex-shrink: 0; accent-color: var(--c-teal); width: 1rem; height: 1rem; }
+}
+
+.sv-score-badge {
+  margin-left: auto;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--c-teal);
+  background: var(--c-foam);
+  border-radius: 100px;
+  padding: 0.1rem 0.5rem;
+}
+
+// ── Yes/No ────────────────────────────────────────────────────────────
+.sv-yesno {
+  display: flex;
+  gap: 1rem;
+}
+
+.sv-yesno-opt {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+
+  input { accent-color: var(--c-teal); width: 1rem; height: 1rem; }
+}
+
+// ── Rating Scale ──────────────────────────────────────────────────────
+.sv-rating {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.sv-rating-btn {
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  background: var(--c-white);
+  color: var(--c-text-mid);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.12s;
+
+  &:hover    { border-color: var(--c-teal); color: var(--c-teal); }
+  &.selected { border-color: var(--c-teal); background: var(--c-teal); color: #fff; }
+}
+
+// ── Likert ────────────────────────────────────────────────────────────
+.sv-likert-scale {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.sv-likert-opt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  cursor: pointer;
+
+  input {
+    accent-color: var(--c-teal);
+    width: 1.1rem;
+    height: 1.1rem;
+  }
+}
+
+.sv-likert-num {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--c-text-mid);
+}
+
+.sv-likert-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--c-text-light);
+  margin-top: 0.5rem;
+}
+
+// ── Range ─────────────────────────────────────────────────────────────
+.sv-range-input {
+  width: 100%;
+  accent-color: var(--c-teal);
+  cursor: pointer;
+}
+
+.sv-range-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: var(--c-text-light);
+  margin-top: 0.35rem;
+}
+
+.sv-range-val {
+  font-weight: 700;
+  color: var(--c-teal);
+  font-size: 0.9rem;
+}
+
+// ── NPS ───────────────────────────────────────────────────────────────
+.sv-nps-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.sv-nps-btn {
+  width: 2.4rem;
+  height: 2.4rem;
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  background: var(--c-white);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--c-text-mid);
+  transition: all 0.12s;
+
+  &:hover    { border-color: var(--c-teal); }
+  &.selected { color: #fff; border-color: transparent; }
+  &.low.selected      { background: #ef4444; }
+  &.mid.selected      { background: #f59e0b; }
+  &.high.selected     { background: #22c55e; }
+}
+
+.sv-nps-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--c-text-light);
+  margin-top: 0.5rem;
+}
+
+// ── Unsupported ───────────────────────────────────────────────────────
+.sv-unsupported {
+  font-size: 0.85rem;
+  color: var(--c-text-light);
+  font-style: italic;
+  margin: 0;
+}
+
+// ── Validation error ──────────────────────────────────────────────────
+.sv-field-error {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.83rem;
+  color: #dc2626;
+  margin-top: 0.6rem;
+}
+
+// ── Footer / submit ───────────────────────────────────────────────────
+.sv-submit-error {
+  text-align: center;
+  font-size: 0.875rem;
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+}
+
+.sv-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--c-border);
+}

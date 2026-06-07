@@ -1,0 +1,336 @@
+@if (loading()) {
+  <div class="sv-loading">Loading survey…</div>
+
+} @else if (loadError()) {
+  <div class="sv-error">
+    <p>{{ loadError() }}</p>
+    <a routerLink="/public-survey" class="btn btn-outline" style="margin-top:1rem">Back to Surveys</a>
+  </div>
+
+} @else if (submitted()) {
+  <div class="sv-done">
+    <svg viewBox="0 0 64 64" fill="none" class="sv-done-icon">
+      <circle cx="32" cy="32" r="28" stroke="currentColor" stroke-width="2.5"/>
+      <path d="M20 32 L28 40 L44 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h2>Thank you!</h2>
+    <p>Your responses have been recorded.</p>
+    <a routerLink="/public-survey" class="btn btn-accent" style="margin-top:1.5rem">Browse More Surveys</a>
+  </div>
+
+} @else if (loadedSurvey(); as survey) {
+  <div class="sv-wrap">
+
+    <!-- Survey header card -->
+    <div class="sv-intro">
+      <h1 class="sv-title">{{ survey.formName }}</h1>
+      @if (survey.description) {
+        <p class="sv-desc">{{ survey.description }}</p>
+      }
+    </div>
+
+    <!-- Questions -->
+    <div class="sv-questions">
+      @for (section of survey.sections; track section.sectionId) {
+
+        @if (section.sectionName) {
+          <h2 class="sv-section-title">{{ section.sectionName }}</h2>
+        }
+
+        @for (q of section.questions; track q.questionId) {
+          <div class="sv-question" [class.has-error]="!!errors()[q.questionId]">
+
+            <div class="sv-q-label">
+              <span class="sv-q-num">{{ q.order }}.</span>
+              <span class="sv-q-text">{{ q.text }}</span>
+              @if (q.attrs.required) { <span class="sv-req">*</span> }
+            </div>
+
+            <div class="sv-q-input">
+
+              @switch (q.questionTypeId) {
+
+                <!-- 1 · Text -->
+                @case (T.TEXT) {
+                  <input type="text" class="sv-input"
+                    [placeholder]="q.attrs.min ? 'Min ' + q.attrs.min + ' characters' : 'Your answer'"
+                    [value]="strAnswer(q.questionId)"
+                    (input)="setAnswer(q.questionId, $any($event.target).value)"
+                    (blur)="onBlur(q)" />
+                }
+
+                <!-- 2 · Long Text -->
+                @case (T.LONG_TEXT) {
+                  <textarea class="sv-textarea"
+                    [placeholder]="q.attrs.min ? 'Min ' + q.attrs.min + ' characters' : 'Your answer'"
+                    [value]="strAnswer(q.questionId)"
+                    (input)="setAnswer(q.questionId, $any($event.target).value)"
+                    (blur)="onBlur(q)"></textarea>
+                }
+
+                <!-- 3 · Number -->
+                @case (T.NUMBER) {
+                  <input type="number" class="sv-input sv-input-sm"
+                    [min]="q.attrs.min ?? null"
+                    [max]="q.attrs.max ?? null"
+                    [value]="strAnswer(q.questionId)"
+                    (input)="setAnswer(q.questionId, $any($event.target).value)"
+                    (blur)="onBlur(q)" />
+                }
+
+                <!-- 4 · Radio Button -->
+                @case (T.RADIO) {
+                  <div class="sv-radio-group">
+                    @for (opt of strOpts(q); track opt) {
+                      <label class="sv-radio-opt">
+                        <input type="radio" [name]="'q' + q.questionId" [value]="opt"
+                          [checked]="strAnswer(q.questionId) === opt"
+                          (change)="setAnswer(q.questionId, opt); onBlur(q)" />
+                        <span>{{ opt }}</span>
+                      </label>
+                    }
+                  </div>
+                }
+
+                <!-- 5 · Checkbox List -->
+                @case (T.CHECKBOX) {
+                  <div class="sv-check-group">
+                    @for (opt of strOpts(q); track opt) {
+                      <label class="sv-check-opt">
+                        <input type="checkbox"
+                          [checked]="isChecked(q.questionId, opt)"
+                          (change)="toggleCheckbox(q.questionId, opt, $any($event.target).checked); onBlur(q)" />
+                        <span>{{ opt }}</span>
+                      </label>
+                    }
+                  </div>
+                }
+
+                <!-- 6 · Dropdown -->
+                @case (T.DROPDOWN) {
+                  <select class="sv-select"
+                    [value]="strAnswer(q.questionId)"
+                    (change)="setAnswer(q.questionId, $any($event.target).value); onBlur(q)">
+                    <option value="" disabled [selected]="!strAnswer(q.questionId)">Select an option…</option>
+                    @for (opt of strOpts(q); track opt) {
+                      <option [value]="opt">{{ opt }}</option>
+                    }
+                  </select>
+                }
+
+                <!-- 7 · Date -->
+                @case (T.DATE) {
+                  <input type="date" class="sv-input sv-input-sm"
+                    [value]="strAnswer(q.questionId)"
+                    (input)="setAnswer(q.questionId, $any($event.target).value)"
+                    (blur)="onBlur(q)" />
+                }
+
+                <!-- 8 · Time -->
+                @case (T.TIME) {
+                  <input type="time" class="sv-input sv-input-sm"
+                    [value]="strAnswer(q.questionId)"
+                    (input)="setAnswer(q.questionId, $any($event.target).value)"
+                    (blur)="onBlur(q)" />
+                }
+
+                <!-- 9 · Date Time -->
+                @case (T.DATETIME) {
+                  <input type="datetime-local" class="sv-input sv-input-sm"
+                    [value]="strAnswer(q.questionId)"
+                    (input)="setAnswer(q.questionId, $any($event.target).value)"
+                    (blur)="onBlur(q)" />
+                }
+
+                <!-- 12 · Rating Scale -->
+                @case (T.RATING) {
+                  <div class="sv-rating">
+                    @for (n of ratingItems(q); track n) {
+                      <button type="button" class="sv-rating-btn"
+                        [class.selected]="strAnswer(q.questionId) === '' + n"
+                        (click)="setAnswer(q.questionId, '' + n); onBlur(q)">
+                        {{ n }}
+                      </button>
+                    }
+                  </div>
+                }
+
+                <!-- 13 · Likert -->
+                @case (T.LIKERT) {
+                  <div class="sv-likert">
+                    <div class="sv-likert-scale">
+                      @for (n of scaleItems(q); track n) {
+                        <label class="sv-likert-opt">
+                          <input type="radio" [name]="'q' + q.questionId" [value]="'' + n"
+                            [checked]="strAnswer(q.questionId) === '' + n"
+                            (change)="setAnswer(q.questionId, '' + n); onBlur(q)" />
+                          <span class="sv-likert-num">{{ n }}</span>
+                        </label>
+                      }
+                    </div>
+                    <div class="sv-likert-labels">
+                      <span>Strongly Disagree</span>
+                      <span>Strongly Agree</span>
+                    </div>
+                  </div>
+                }
+
+                <!-- 14 · Range -->
+                @case (T.RANGE) {
+                  <div class="sv-range">
+                    <input type="range" class="sv-range-input"
+                      [min]="rangeMin(q)" [max]="rangeMax(q)"
+                      [value]="rangeVal(q)"
+                      (input)="setAnswer(q.questionId, $any($event.target).value)"
+                      (change)="onBlur(q)" />
+                    <div class="sv-range-labels">
+                      <span>{{ rangeMin(q) }}</span>
+                      <span class="sv-range-val">{{ rangeVal(q) }}</span>
+                      <span>{{ rangeMax(q) }}</span>
+                    </div>
+                  </div>
+                }
+
+                <!-- 15 · Email -->
+                @case (T.EMAIL) {
+                  <input type="email" class="sv-input"
+                    placeholder="you@example.com"
+                    [value]="strAnswer(q.questionId)"
+                    (input)="setAnswer(q.questionId, $any($event.target).value)"
+                    (blur)="onBlur(q)" />
+                }
+
+                <!-- 16 · Phone -->
+                @case (T.PHONE) {
+                  <input type="tel" class="sv-input"
+                    placeholder="+1 (555) 000-0000"
+                    [value]="strAnswer(q.questionId)"
+                    (input)="setAnswer(q.questionId, $any($event.target).value)"
+                    (blur)="onBlur(q)" />
+                }
+
+                <!-- 17 · URL -->
+                @case (T.URL) {
+                  <input type="url" class="sv-input"
+                    placeholder="https://example.com"
+                    [value]="strAnswer(q.questionId)"
+                    (input)="setAnswer(q.questionId, $any($event.target).value)"
+                    (blur)="onBlur(q)" />
+                }
+
+                <!-- 18 · NPS -->
+                @case (T.NPS) {
+                  <div class="sv-nps">
+                    <div class="sv-nps-btns">
+                      @for (n of npsItems(); track n) {
+                        <button type="button" class="sv-nps-btn"
+                          [class.selected]="strAnswer(q.questionId) === '' + n"
+                          [class.low]="n <= 6"
+                          [class.mid]="n >= 7 && n <= 8"
+                          [class.high]="n >= 9"
+                          (click)="setAnswer(q.questionId, '' + n); onBlur(q)">
+                          {{ n }}
+                        </button>
+                      }
+                    </div>
+                    <div class="sv-nps-labels">
+                      <span>Not at all likely</span>
+                      <span>Extremely likely</span>
+                    </div>
+                  </div>
+                }
+
+                <!-- 19 · Yes/No -->
+                @case (T.YES_NO) {
+                  <div class="sv-yesno">
+                    @for (opt of ['Yes', 'No']; track opt) {
+                      <label class="sv-yesno-opt">
+                        <input type="radio" [name]="'q' + q.questionId" [value]="opt"
+                          [checked]="strAnswer(q.questionId) === opt"
+                          (change)="setAnswer(q.questionId, opt); onBlur(q)" />
+                        <span>{{ opt }}</span>
+                      </label>
+                    }
+                  </div>
+                }
+
+                <!-- 20 · Checklist With Values -->
+                @case (T.CHECKBOX_VAL) {
+                  <div class="sv-check-group">
+                    @for (opt of scoredOpts(q); track opt.text) {
+                      <label class="sv-check-opt">
+                        <input type="checkbox"
+                          [checked]="isChecked(q.questionId, opt.text)"
+                          (change)="toggleCheckbox(q.questionId, opt.text, $any($event.target).checked); onBlur(q)" />
+                        <span>{{ opt.text }}</span>
+                        <span class="sv-score-badge">{{ opt.value }}</span>
+                      </label>
+                    }
+                  </div>
+                }
+
+                <!-- 21 · Dropdown With Values -->
+                @case (T.DROPDOWN_VAL) {
+                  <select class="sv-select"
+                    [value]="strAnswer(q.questionId)"
+                    (change)="setAnswer(q.questionId, $any($event.target).value); onBlur(q)">
+                    <option value="" disabled [selected]="!strAnswer(q.questionId)">Select an option…</option>
+                    @for (opt of scoredOpts(q); track opt.text) {
+                      <option [value]="opt.text">{{ opt.text }}</option>
+                    }
+                  </select>
+                }
+
+                <!-- 22 · Radio With Values -->
+                @case (T.RADIO_VAL) {
+                  <div class="sv-radio-group">
+                    @for (opt of scoredOpts(q); track opt.text) {
+                      <label class="sv-radio-opt">
+                        <input type="radio" [name]="'q' + q.questionId" [value]="opt.text"
+                          [checked]="strAnswer(q.questionId) === opt.text"
+                          (change)="setAnswer(q.questionId, opt.text); onBlur(q)" />
+                        <span>{{ opt.text }}</span>
+                        <span class="sv-score-badge">{{ opt.value }}</span>
+                      </label>
+                    }
+                  </div>
+                }
+
+                <!-- Unsupported types -->
+                @default {
+                  <p class="sv-unsupported">
+                    This question type ({{ q.questionTypeName }}) is not supported for display.
+                  </p>
+                }
+
+              }
+            </div>
+
+            @if (errors()[q.questionId]) {
+              <div class="sv-field-error">
+                <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                </svg>
+                {{ errors()[q.questionId] }}
+              </div>
+            }
+          </div>
+        }
+      }
+    </div>
+
+    <!-- Submit -->
+    @if (submitError()) {
+      <div class="sv-submit-error">{{ submitError() }}</div>
+    }
+
+    <div class="sv-footer">
+      <a routerLink="/public-survey" class="btn btn-outline">Cancel</a>
+      <button type="button" class="btn btn-accent"
+        [disabled]="submitting()" (click)="submitSurvey()">
+        @if (submitting()) { Submitting… } @else { Submit Survey }
+      </button>
+    </div>
+
+  </div>
+}

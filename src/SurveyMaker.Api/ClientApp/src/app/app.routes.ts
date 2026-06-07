@@ -8,6 +8,7 @@ import { CreateForm } from './pages/create-form/create-form';
 import { MySurveys } from './pages/my-surveys/my-surveys';
 import { PublicSurvey } from './pages/public-survey/public-survey';
 import { FormEditor } from './pages/form-editor/form-editor';
+import { TakeSurvey } from './pages/take-survey/take-survey';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', component: Home },
@@ -22,6 +23,7 @@ export const routes: Routes = [
       { path: 'forms/:id/edit',     component: FormEditor },
       { path: 'my-surveys',         component: MySurveys },
       { path: 'public-survey',      component: PublicSurvey },
+      { path: 'survey/:id',         component: TakeSurvey },
     ]
   },
   { path: '**', redirectTo: '' }
