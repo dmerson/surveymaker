@@ -4,10 +4,12 @@ import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FormService } from '../../services/form.service';
 import { FormDetail, QuestionDetail, QuestionType, SectionDetail } from '../../models/form.model';
+import { FormulaToken } from '../../models/survey.model';
+import { FormulaWizard } from '../formula-wizard/formula-wizard';
 
 @Component({
   selector: 'app-form-editor',
-  imports: [FormsModule, RouterLink, NgTemplateOutlet],
+  imports: [FormsModule, RouterLink, NgTemplateOutlet, FormulaWizard],
   templateUrl: './form-editor.html',
   styleUrl: './form-editor.scss'
 })
@@ -40,6 +42,9 @@ export class FormEditor implements OnInit {
   aqPendVal    = signal('');
   // scale types (Likert)
   aqScale      = signal(5);
+  // formula types (Calculation)
+  aqTokens     = signal<FormulaToken[]>([]);
+  showFormulaWizard = signal(false);
   // status
   aqSaving     = signal(false);
   aqError      = signal('');
@@ -78,7 +83,33 @@ export class FormEditor implements OnInit {
       hasOptions:     [4, 5, 6].includes(id),
       hasScored:      [20, 21, 22].includes(id),
       hasScale:       [13].includes(id),
+      isFormula:      id === 24,
     };
+  });
+
+  private static readonly NUMERIC_TYPE_IDS = new Set([3, 12, 13, 14, 18, 20, 21, 22]);
+
+  calcAvailableQuestions = computed(() => {
+    const f = this.form();
+    if (!f) return [];
+    const editId = this.aqEditingQuestionId();
+    return f.sections
+      .flatMap(s => s.questions)
+      .filter(q => FormEditor.NUMERIC_TYPE_IDS.has(q.questionTypeId) && q.questionId !== editId);
+  });
+
+  formulaPreview = computed(() => {
+    const toks = this.aqTokens();
+    if (toks.length === 0) return 'No formula defined';
+    return toks.map(t => {
+      switch (t.type) {
+        case 'question': return `[${t.label}]`;
+        case 'op':       return ` ${t.value} `;
+        case 'fn':       return t.value;
+        case 'paren':    return t.value;
+        case 'number':   return String(t.value);
+      }
+    }).join('');
   });
 
   private readonly route       = inject(ActivatedRoute);
@@ -168,6 +199,9 @@ export class FormEditor implements OnInit {
       if (typeId === 13 && attrs['scale'] != null) {
         this.aqScale.set(attrs['scale'] as number);
       }
+      if (typeId === 24 && Array.isArray(attrs['tokens'])) {
+        this.aqTokens.set(attrs['tokens'] as FormulaToken[]);
+      }
     } catch { /* ignore invalid JSON */ }
   }
 
@@ -180,6 +214,7 @@ export class FormEditor implements OnInit {
     this.aqOptions.set([]); this.aqPendOpt.set('');
     this.aqScored.set([]); this.aqPendText.set(''); this.aqPendVal.set('');
     this.aqScale.set(5);
+    this.aqTokens.set([]);
     this.aqError.set('');
   }
 
@@ -190,7 +225,21 @@ export class FormEditor implements OnInit {
     this.aqOptions.set([]); this.aqPendOpt.set('');
     this.aqScored.set([]); this.aqPendText.set(''); this.aqPendVal.set('');
     this.aqScale.set(5);
+    this.aqTokens.set([]);
     this.aqError.set('');
+  }
+
+  openFormulaWizard(): void {
+    this.showFormulaWizard.set(true);
+  }
+
+  onFormulaSaved(tokens: FormulaToken[]): void {
+    this.aqTokens.set(tokens);
+    this.showFormulaWizard.set(false);
+  }
+
+  onFormulaWizardCancelled(): void {
+    this.showFormulaWizard.set(false);
   }
 
   addOption(): void {
@@ -242,6 +291,9 @@ export class FormEditor implements OnInit {
     }
     if (f.hasScale) {
       attrs['scale'] = this.aqScale();
+    }
+    if (f.isFormula && this.aqTokens().length > 0) {
+      attrs['tokens'] = this.aqTokens();
     }
 
     // Always store valid JSON; never null

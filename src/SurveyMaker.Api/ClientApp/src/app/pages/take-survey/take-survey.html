@@ -302,6 +302,14 @@
                   </div>
                 }
 
+                <!-- 24 · Calculation -->
+                @case (T.CALCULATION) {
+                  <div class="sv-calc-result">
+                    <span class="sv-calc-value">{{ calcValue(q) }}</span>
+                    <span class="sv-calc-note">Calculated from your answers</span>
+                  </div>
+                }
+
                 <!-- Unsupported types -->
                 @default {
                   <p class="sv-unsupported">

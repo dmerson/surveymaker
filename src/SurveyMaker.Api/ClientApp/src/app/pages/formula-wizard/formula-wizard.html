@@ -1,0 +1,100 @@
+<div class="fw-backdrop" (click)="cancel()">
+  <div class="fw-modal" (click)="$event.stopPropagation()">
+
+    <div class="fw-header">
+      <h2 class="fw-title">Formula Builder</h2>
+      <button class="fw-close" type="button" (click)="cancel()">×</button>
+    </div>
+
+    <!-- Token strip -->
+    <div class="fw-token-area">
+      @if (tokens().length === 0) {
+        <span class="fw-placeholder">Click buttons below to build your formula…</span>
+      } @else {
+        @for (t of tokens(); track $index) {
+          <span class="fw-token fw-token-{{ t.type }}" (click)="removeToken($index)"
+            title="Click to remove">
+            {{ tokenLabel(t) }}
+            <span class="fw-token-x">×</span>
+          </span>
+        }
+      }
+    </div>
+    <div class="fw-token-actions">
+      <button type="button" class="fw-btn-sm fw-btn-danger"
+        [disabled]="tokens().length === 0"
+        (click)="deleteLast()">← Delete Last</button>
+      <button type="button" class="fw-btn-sm fw-btn-outline"
+        [disabled]="tokens().length === 0"
+        (click)="clearAll()">Clear All</button>
+    </div>
+
+    <!-- Operators -->
+    <div class="fw-section">
+      <span class="fw-section-label">Operators &amp; Separators</span>
+      <div class="fw-btn-row">
+        @for (op of ops; track op) {
+          <button type="button" class="fw-btn fw-btn-op" (click)="insertOp(op)">{{ op }}</button>
+        }
+        <button type="button" class="fw-btn fw-btn-paren" (click)="insertParen('(')">(</button>
+        <button type="button" class="fw-btn fw-btn-paren" (click)="insertParen(')')">)</button>
+      </div>
+    </div>
+
+    <!-- Functions -->
+    <div class="fw-section">
+      <span class="fw-section-label">Functions</span>
+      <div class="fw-btn-row">
+        @for (fn of fns; track fn) {
+          <button type="button" class="fw-btn fw-btn-fn" (click)="insertFn(fn)">{{ fn }}(</button>
+        }
+      </div>
+      <p class="fw-hint">Functions take comma-separated arguments. Close with ) when done.</p>
+    </div>
+
+    <!-- Questions -->
+    <div class="fw-section">
+      <span class="fw-section-label">Numeric Questions</span>
+      @if (numericQuestions().length === 0) {
+        <p class="fw-empty">No numeric questions found. Add Number, Rating, Range, NPS, or scored option questions first.</p>
+      } @else {
+        <div class="fw-q-list">
+          @for (q of numericQuestions(); track q.questionId) {
+            <button type="button" class="fw-btn fw-btn-q" (click)="insertQuestion(q)"
+              [title]="q.text">
+              {{ q.text }}
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Literal number -->
+    <div class="fw-section">
+      <span class="fw-section-label">Literal Number</span>
+      <div class="fw-num-input-row">
+        <input type="number" class="fw-num-input" placeholder="e.g. 3.14"
+          [ngModel]="numInput()" (ngModelChange)="numInput.set($event)"
+          (keydown.enter)="insertNumber()" />
+        <button type="button" class="fw-btn fw-btn-add" (click)="insertNumber()">Add</button>
+      </div>
+    </div>
+
+    <!-- Preview -->
+    <div class="fw-preview">
+      <div class="fw-preview-formula">{{ formulaText() || '(empty)' }}</div>
+      @if (previewResult()) {
+        <div class="fw-preview-result">
+          Preview (all inputs = 1): <strong>{{ previewResult() }}</strong>
+        </div>
+      }
+    </div>
+
+    <!-- Footer -->
+    <div class="fw-footer">
+      <button type="button" class="btn btn-outline" (click)="cancel()">Cancel</button>
+      <button type="button" class="btn btn-accent" (click)="save()">Done</button>
+    </div>
+
+  </div>
+</div>

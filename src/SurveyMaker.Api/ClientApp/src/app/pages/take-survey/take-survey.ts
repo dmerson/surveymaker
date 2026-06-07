@@ -6,6 +6,7 @@ import {
   LoadedQuestion, LoadedSection, LoadedSurvey,
   ParsedAttrs, ScoredOption, SurveyAnswerPayload, SurveyDetail
 } from '../../models/survey.model';
+import { evaluateFormula } from '../../utils/formula-evaluator';
 
 // Question type IDs
 const T = {
@@ -15,7 +16,8 @@ const T = {
   RATING: 12, LIKERT: 13, RANGE: 14,
   EMAIL: 15, PHONE: 16, URL: 17,
   NPS: 18, YES_NO: 19,
-  CHECKBOX_VAL: 20, DROPDOWN_VAL: 21, RADIO_VAL: 22
+  CHECKBOX_VAL: 20, DROPDOWN_VAL: 21, RADIO_VAL: 22,
+  CALCULATION: 24
 } as const;
 
 @Component({
@@ -141,6 +143,47 @@ export class TakeSurvey implements OnInit {
     return isNaN(v) ? this.rangeMin(q) : v;
   }
 
+  calcValue(q: LoadedQuestion): string {
+    const tokens = q.attrs.tokens;
+    if (!tokens || tokens.length === 0) return '—';
+    const survey = this.loadedSurvey();
+    if (!survey) return '—';
+
+    const answerMap = this.answers();
+
+    const getVal = (questionId: number): number => {
+      const ref = survey.allQuestions.find(rq => rq.questionId === questionId);
+      if (!ref) return NaN;
+      const raw = answerMap[questionId];
+
+      switch (ref.questionTypeId) {
+        case T.CHECKBOX_VAL: {
+          const selected = (raw as string[]) ?? [];
+          const opts = (ref.attrs.options as ScoredOption[]) ?? [];
+          return selected.reduce((sum, text) => {
+            const opt = opts.find(o => o.text === text);
+            return sum + (opt?.value ?? 0);
+          }, 0);
+        }
+        case T.DROPDOWN_VAL:
+        case T.RADIO_VAL: {
+          const text = (raw as string) ?? '';
+          const opts = (ref.attrs.options as ScoredOption[]) ?? [];
+          const opt = opts.find(o => o.text === text);
+          return opt?.value ?? NaN;
+        }
+        default: {
+          const n = parseFloat((raw as string) ?? '');
+          return isNaN(n) ? 0 : n;
+        }
+      }
+    };
+
+    const result = evaluateFormula(tokens, getVal);
+    if (isNaN(result) || !isFinite(result)) return '—';
+    return String(Math.round(result * 10000) / 10000);
+  }
+
   // ── Validation ────────────────────────────────────────────────────────────
 
   onBlur(q: LoadedQuestion): void {
@@ -200,10 +243,11 @@ export class TakeSurvey implements OnInit {
     const survey = this.loadedSurvey();
     if (!survey) return;
 
-    // Validate all questions and collect errors
+    // Validate all questions and collect errors (skip computed calculation questions)
     const newErrors: Record<number, string | null> = {};
     let hasErrors = false;
     for (const q of survey.allQuestions) {
+      if (q.questionTypeId === T.CALCULATION) continue;
       const err = this.validate(q);
       newErrors[q.questionId] = err;
       if (err) hasErrors = true;
@@ -222,6 +266,11 @@ export class TakeSurvey implements OnInit {
     const answerMap = this.answers();
     const payload = survey.allQuestions
       .map((q): SurveyAnswerPayload | null => {
+        // Calculation questions: store the evaluated result
+        if (q.questionTypeId === T.CALCULATION) {
+          const val = this.calcValue(q);
+          return val !== '—' ? { questionId: q.questionId, answerScalar: val } : null;
+        }
         const raw = answerMap[q.questionId];
         if (raw == null || raw === '' || (Array.isArray(raw) && raw.length === 0)) {
           return null;

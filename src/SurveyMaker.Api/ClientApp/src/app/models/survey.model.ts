@@ -35,7 +35,15 @@ export interface ParsedAttrs {
   max?: number;
   options?: string[] | ScoredOption[];
   scale?: number;
+  tokens?: FormulaToken[];
 }
+
+export type FormulaToken =
+  | { type: 'question'; id: number; label: string }
+  | { type: 'op'; value: '+' | '-' | '*' | '/' | 'mod' | ',' }
+  | { type: 'fn'; value: 'sqrt' | 'abs' | 'mean' | 'max' | 'min' }
+  | { type: 'paren'; value: '(' | ')' }
+  | { type: 'number'; value: number };
 
 export interface ScoredOption {
   text: string;

@@ -96,10 +96,12 @@
           <input class="aq-input" type="number" min="1"
             [ngModel]="aqOrder()" (ngModelChange)="aqOrder.set(+$event)" />
         </div>
-        <label class="aq-required-toggle">
-          <input type="checkbox" [ngModel]="aqRequired()" (ngModelChange)="aqRequired.set($event)" />
-          Required
-        </label>
+        @if (aqTypeId() !== 24) {
+          <label class="aq-required-toggle">
+            <input type="checkbox" [ngModel]="aqRequired()" (ngModelChange)="aqRequired.set($event)" />
+            Required
+          </label>
+        }
       </div>
 
       @if (aqTypeId() > 0) {
@@ -194,6 +196,18 @@
                   (click)="aqScale.set(s)">{{ s }}</button>
               }
             </div>
+          </div>
+        }
+
+        @if (typeFlags().isFormula) {
+          <div class="aq-field">
+            <label class="aq-label">Formula</label>
+            <div class="formula-preview-text">{{ formulaPreview() }}</div>
+            <button type="button" class="btn btn-outline btn-sm"
+              style="margin-top:0.4rem"
+              (click)="openFormulaWizard()">
+              {{ aqTokens().length > 0 ? 'Edit Formula' : 'Build Formula' }}
+            </button>
           </div>
         }
       }
@@ -351,5 +365,15 @@
         </div>
       </div>
     </div>
+  }
+
+  <!-- ── Formula Wizard ─────────────────────────────────────────── -->
+  @if (showFormulaWizard()) {
+    <app-formula-wizard
+      [questions]="calcAvailableQuestions()"
+      [initialTokens]="aqTokens()"
+      (saved)="onFormulaSaved($event)"
+      (cancelled)="onFormulaWizardCancelled()">
+    </app-formula-wizard>
   }
 }
