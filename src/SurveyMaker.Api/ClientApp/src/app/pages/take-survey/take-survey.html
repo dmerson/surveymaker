@@ -96,6 +96,11 @@
                       </label>
                     }
                   </div>
+                  @if (hasOtherSelected(q)) {
+                    <input type="text" class="sv-input sv-other-input" placeholder="Please specify…"
+                      [value]="getOtherText(q.questionId)"
+                      (input)="setOtherText(q.questionId, $any($event.target).value); onBlur(q)" />
+                  }
                 }
 
                 <!-- 5 · Checkbox List -->
@@ -110,6 +115,11 @@
                       </label>
                     }
                   </div>
+                  @if (hasOtherSelected(q)) {
+                    <input type="text" class="sv-input sv-other-input" placeholder="Please specify…"
+                      [value]="getOtherText(q.questionId)"
+                      (input)="setOtherText(q.questionId, $any($event.target).value); onBlur(q)" />
+                  }
                 }
 
                 <!-- 6 · Dropdown -->
@@ -122,6 +132,11 @@
                       <option [value]="opt">{{ opt }}</option>
                     }
                   </select>
+                  @if (hasOtherSelected(q)) {
+                    <input type="text" class="sv-input sv-other-input" placeholder="Please specify…"
+                      [value]="getOtherText(q.questionId)"
+                      (input)="setOtherText(q.questionId, $any($event.target).value); onBlur(q)" />
+                  }
                 }
 
                 <!-- 7 · Date -->

@@ -40,6 +40,8 @@ export class TakeSurvey implements OnInit {
 
   // answer map: questionId → string (scalar) or string[] (multi-select)
   answers     = signal<Record<number, string | string[]>>({});
+  // free-text for "Other" option, keyed by questionId
+  otherText   = signal<Record<number, string>>({});
   // error map: questionId → error message or null
   errors      = signal<Record<number, string | null>>({});
 
@@ -109,6 +111,30 @@ export class TakeSurvey implements OnInit {
 
   isChecked(questionId: number, option: string): boolean {
     return this.arrAnswer(questionId).includes(option);
+  }
+
+  // ── "Other" option helpers ────────────────────────────────────────────────
+
+  isOtherOpt(opt: string): boolean {
+    return opt.trim().toLowerCase() === 'other';
+  }
+
+  hasOtherSelected(q: LoadedQuestion): boolean {
+    if (q.questionTypeId === T.RADIO || q.questionTypeId === T.DROPDOWN) {
+      return this.isOtherOpt(this.strAnswer(q.questionId));
+    }
+    if (q.questionTypeId === T.CHECKBOX) {
+      return this.arrAnswer(q.questionId).some(o => this.isOtherOpt(o));
+    }
+    return false;
+  }
+
+  getOtherText(questionId: number): string {
+    return this.otherText()[questionId] ?? '';
+  }
+
+  setOtherText(questionId: number, text: string): void {
+    this.otherText.update(m => ({ ...m, [questionId]: text }));
   }
 
   // ── Type-specific helpers (used in template) ───────────────────────────────
@@ -233,6 +259,17 @@ export class TakeSurvey implements OnInit {
         try { new URL(val); }
         catch { return 'Please enter a valid URL (e.g. https://example.com).'; }
         break;
+
+      case T.RADIO:
+      case T.DROPDOWN:
+        if (this.isOtherOpt(val) && !this.getOtherText(q.questionId).trim())
+          return 'Please specify your answer for "Other".';
+        break;
+
+      case T.CHECKBOX:
+        if ((raw as string[]).some(o => this.isOtherOpt(o)) && !this.getOtherText(q.questionId).trim())
+          return 'Please specify your answer for "Other".';
+        break;
     }
     return null;
   }
@@ -276,9 +313,18 @@ export class TakeSurvey implements OnInit {
           return null;
         }
         if (Array.isArray(raw)) {
-          return { questionId: q.questionId, answerJson: JSON.stringify(raw) };
+          // Replace 'Other' with the typed text for checkbox lists
+          const resolved = raw.map(v =>
+            this.isOtherOpt(v) ? (this.getOtherText(q.questionId) || v) : v
+          );
+          return { questionId: q.questionId, answerJson: JSON.stringify(resolved) };
         }
-        return { questionId: q.questionId, answerScalar: raw };
+        // Replace 'Other' with the typed text for radio / dropdown
+        const scalar = (q.questionTypeId === T.RADIO || q.questionTypeId === T.DROPDOWN)
+          && this.isOtherOpt(raw)
+          ? (this.getOtherText(q.questionId) || raw)
+          : raw;
+        return { questionId: q.questionId, answerScalar: scalar };
       })
       .filter((a): a is SurveyAnswerPayload => a !== null);
 

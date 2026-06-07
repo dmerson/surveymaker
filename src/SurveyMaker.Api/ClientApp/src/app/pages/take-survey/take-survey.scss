@@ -353,3 +353,10 @@
   color: var(--c-text-light, #888);
   font-style: italic;
 }
+
+// ── "Other" free-text input ───────────────────────────────────────────
+.sv-other-input {
+  margin-top: 0.6rem;
+  display: block;
+  width: 100%;
+}
