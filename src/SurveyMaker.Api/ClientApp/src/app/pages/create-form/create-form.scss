@@ -1,3 +1,13 @@
+.error-banner {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  margin-bottom: 1.25rem;
+}
+
 .form-meta-card {
   margin-bottom: 1.5rem;
 }
@@ -72,10 +82,39 @@
   font-family: inherit;
 }
 
-.coming-soon {
-  text-align: center;
-  font-size: 0.82rem;
-  color: var(--c-text-light);
-  margin-top: 1.25rem;
-  font-style: italic;
+.radio-group {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex: 1;
+  min-width: 180px;
+  padding: 0.85rem 1rem;
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+
+  input[type="radio"] { display: none; }
+
+  &.selected {
+    border-color: var(--c-teal);
+    background: var(--c-foam);
+  }
+
+  .radio-icon { font-size: 1.2rem; }
+
+  .radio-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+
+    strong { font-size: 0.875rem; color: var(--c-deep); }
+    span   { font-size: 0.78rem;  color: var(--c-text-light); }
+  }
 }

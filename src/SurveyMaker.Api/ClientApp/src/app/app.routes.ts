@@ -7,6 +7,7 @@ import { MyForms } from './pages/my-forms/my-forms';
 import { CreateForm } from './pages/create-form/create-form';
 import { MySurveys } from './pages/my-surveys/my-surveys';
 import { PublicSurvey } from './pages/public-survey/public-survey';
+import { FormEditor } from './pages/form-editor/form-editor';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', component: Home },
@@ -15,11 +16,12 @@ export const routes: Routes = [
     component: Layout,
     canActivate: [authGuard],
     children: [
-      { path: 'dashboard',     component: Dashboard },
-      { path: 'my-forms',      component: MyForms },
-      { path: 'create-form',   component: CreateForm },
-      { path: 'my-surveys',    component: MySurveys },
-      { path: 'public-survey', component: PublicSurvey },
+      { path: 'dashboard',          component: Dashboard },
+      { path: 'my-forms',           component: MyForms },
+      { path: 'create-form',        component: CreateForm },
+      { path: 'forms/:id/edit',     component: FormEditor },
+      { path: 'my-surveys',         component: MySurveys },
+      { path: 'public-survey',      component: PublicSurvey },
     ]
   },
   { path: '**', redirectTo: '' }

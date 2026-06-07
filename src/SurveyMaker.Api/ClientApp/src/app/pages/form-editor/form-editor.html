@@ -1,0 +1,289 @@
+@if (loading()) {
+  <div class="editor-loading">Loading form…</div>
+
+} @else if (loadError()) {
+  <div class="editor-error">{{ loadError() }}</div>
+
+} @else if (form(); as f) {
+  <div class="editor-wrap">
+
+    <!-- ── Header ────────────────────────────────────────────────── -->
+    <div class="editor-header">
+      <a routerLink="/my-forms" class="back-link">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+          <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd"/>
+        </svg>
+        My Forms
+      </a>
+      <div class="editor-title-row">
+        <div>
+          <h1 class="editor-title">{{ f.formName }}</h1>
+          @if (f.description) { <p class="editor-subtitle">{{ f.description }}</p> }
+        </div>
+        <button class="btn-delete-form" (click)="showDeleteConfirm.set(true)">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
+            <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"/>
+          </svg>
+          Delete Form
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Settings row ──────────────────────────────────────────── -->
+    <div class="settings-card">
+      <label class="setting-toggle">
+        <input type="checkbox" [ngModel]="fsRandomize()" (ngModelChange)="fsRandomize.set($event)" />
+        <span>Randomize question order</span>
+      </label>
+      <div class="setting-quota">
+        <label class="setting-label">Response quota</label>
+        <input class="quota-input" type="number" min="1" placeholder="No limit"
+          [ngModel]="fsQuota()" (ngModelChange)="fsQuota.set($event)" />
+      </div>
+      <button class="btn btn-outline btn-sm" [disabled]="fsSaving()" (click)="saveSettings()">
+        @if (fsSaving()) { Saving… } @else if (fsSaved()) { Saved ✓ } @else { Save Settings }
+      </button>
+    </div>
+
+    <!-- ── Sections ───────────────────────────────────────────────── -->
+    @for (section of f.sections; track section.sectionId) {
+      <div class="section-card" [class.active]="aqSectionId() === section.sectionId">
+
+        <div class="section-header">
+          @if (section.sectionName) {
+            <h2 class="section-heading">{{ section.sectionName }}</h2>
+          } @else {
+            <h2 class="section-heading muted">Section {{ section.order }}</h2>
+          }
+        </div>
+
+        <!-- Question list -->
+        @if (section.questions.length > 0) {
+          <div class="question-list">
+            @for (q of section.questions; track q.questionId) {
+              <div class="question-row">
+                <span class="q-num">{{ q.order }}</span>
+                <div class="q-body">
+                  <span class="q-text">{{ q.text }}</span>
+                  <span class="q-badge">{{ q.questionTypeName }}</span>
+                </div>
+                <button class="q-remove" title="Remove question"
+                  (click)="removeQuestion(section, q.questionId)">
+                  <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                    <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                  </svg>
+                </button>
+              </div>
+            }
+          </div>
+        }
+
+        <!-- Add Question panel (open for active section) -->
+        @if (aqSectionId() === section.sectionId) {
+          <div class="aq-panel">
+            <div class="aq-top-row">
+              <div class="aq-field aq-type">
+                <label class="aq-label">Question Type <span class="req">*</span></label>
+                <select class="aq-select"
+                  [ngModel]="aqTypeId()"
+                  (ngModelChange)="onTypeChange($event)">
+                  <option value="0" disabled>Select type…</option>
+                  @for (qt of questionTypes(); track qt.questionTypeId) {
+                    <option [value]="qt.questionTypeId">{{ qt.questionTypeName }}</option>
+                  }
+                </select>
+              </div>
+              <div class="aq-field aq-order">
+                <label class="aq-label">Order</label>
+                <input class="aq-input" type="number" min="1"
+                  [ngModel]="aqOrder()" (ngModelChange)="aqOrder.set(+$event)" />
+              </div>
+              <label class="aq-required-toggle">
+                <input type="checkbox" [ngModel]="aqRequired()" (ngModelChange)="aqRequired.set($event)" />
+                Required
+              </label>
+            </div>
+
+            @if (aqTypeId() > 0) {
+              <div class="aq-field aq-text-field">
+                <label class="aq-label">Question Text <span class="req">*</span></label>
+                <input class="aq-input" type="text" placeholder="Enter your question…"
+                  [ngModel]="aqText()" (ngModelChange)="aqText.set($event)"
+                  (keydown.enter)="saveQuestion()" />
+              </div>
+
+              <!-- Text / Long Text: min + max length -->
+              @if (typeFlags().hasMinMax) {
+                <div class="aq-row-2">
+                  <div class="aq-field">
+                    <label class="aq-label">Min Length</label>
+                    <input class="aq-input" type="number" min="0" placeholder="0"
+                      [ngModel]="aqMinLen()" (ngModelChange)="aqMinLen.set($event)" />
+                  </div>
+                  <div class="aq-field">
+                    <label class="aq-label">Max Length</label>
+                    <input class="aq-input" type="number" min="1" placeholder="No limit"
+                      [ngModel]="aqMaxLen()" (ngModelChange)="aqMaxLen.set($event)" />
+                  </div>
+                </div>
+              }
+
+              <!-- Number / Rating / Range: min + max value -->
+              @if (typeFlags().hasNumberRange) {
+                <div class="aq-row-2">
+                  <div class="aq-field">
+                    <label class="aq-label">Min Value</label>
+                    <input class="aq-input" type="number" placeholder="e.g. 1"
+                      [ngModel]="aqMinVal()" (ngModelChange)="aqMinVal.set($event)" />
+                  </div>
+                  <div class="aq-field">
+                    <label class="aq-label">Max Value</label>
+                    <input class="aq-input" type="number" placeholder="e.g. 10"
+                      [ngModel]="aqMaxVal()" (ngModelChange)="aqMaxVal.set($event)" />
+                  </div>
+                </div>
+              }
+
+              <!-- Radio / Checkbox / Dropdown: option list -->
+              @if (typeFlags().hasOptions) {
+                <div class="aq-field">
+                  <label class="aq-label">Options</label>
+                  <div class="options-list">
+                    @for (opt of aqOptions(); track $index) {
+                      <div class="option-chip">
+                        <span>{{ opt }}</span>
+                        <button type="button" (click)="removeOption($index)">×</button>
+                      </div>
+                    }
+                  </div>
+                  <div class="option-add-row">
+                    <input class="aq-input" type="text" placeholder="Type an option and press Enter…"
+                      [ngModel]="aqPendOpt()" (ngModelChange)="aqPendOpt.set($event)"
+                      (keydown.enter)="addOption()" />
+                    <button class="btn-add-opt" type="button" (click)="addOption()">Add</button>
+                  </div>
+                </div>
+              }
+
+              <!-- Scored options (text + number value) -->
+              @if (typeFlags().hasScored) {
+                <div class="aq-field">
+                  <label class="aq-label">Options (Text + Score)</label>
+                  <div class="options-list">
+                    @for (opt of aqScored(); track $index) {
+                      <div class="option-chip scored">
+                        <span>{{ opt.text }}</span>
+                        <span class="score-val">{{ opt.value }}</span>
+                        <button type="button" (click)="removeScoredOption($index)">×</button>
+                      </div>
+                    }
+                  </div>
+                  <div class="scored-add-row">
+                    <input class="aq-input" type="text" placeholder="Option text"
+                      [ngModel]="aqPendText()" (ngModelChange)="aqPendText.set($event)" />
+                    <input class="aq-input scored-val-input" type="number" placeholder="Value"
+                      [ngModel]="aqPendVal()" (ngModelChange)="aqPendVal.set($event)"
+                      (keydown.enter)="addScoredOption()" />
+                    <button class="btn-add-opt" type="button" (click)="addScoredOption()">Add</button>
+                  </div>
+                </div>
+              }
+
+              <!-- Likert: scale selector -->
+              @if (typeFlags().hasScale) {
+                <div class="aq-field">
+                  <label class="aq-label">Scale Points</label>
+                  <div class="scale-btns">
+                    @for (s of [5, 7, 10]; track s) {
+                      <button type="button" class="scale-btn"
+                        [class.active]="aqScale() === s"
+                        (click)="aqScale.set(s)">{{ s }}</button>
+                    }
+                  </div>
+                </div>
+              }
+            }
+
+            @if (aqError()) {
+              <div class="aq-error">{{ aqError() }}</div>
+            }
+
+            <div class="aq-actions">
+              <button class="btn btn-accent"
+                [disabled]="aqSaving() || aqTypeId() === 0"
+                (click)="saveQuestion()">
+                @if (aqSaving()) { Saving… } @else { Save Question }
+              </button>
+            </div>
+          </div>
+
+        } @else {
+          <button class="add-here-btn" (click)="openAddPanel(section)">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
+              <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+            </svg>
+            Add Question to This Section
+          </button>
+        }
+
+      </div>
+    }
+
+    <!-- ── Add Section ─────────────────────────────────────────────── -->
+    @if (hasAnyQuestion()) {
+      @if (asOpen()) {
+        <div class="as-panel">
+          <h3 class="as-title">New Section</h3>
+          <div class="aq-row-2">
+            <div class="aq-field">
+              <label class="aq-label">Section Name <span class="optional">(blank = hidden)</span></label>
+              <input class="aq-input" type="text" placeholder="e.g. About You"
+                [ngModel]="asName()" (ngModelChange)="asName.set($event)" />
+            </div>
+            <div class="aq-field" style="max-width:110px">
+              <label class="aq-label">Order</label>
+              <input class="aq-input" type="number" min="1"
+                [ngModel]="asOrder()" (ngModelChange)="asOrder.set(+$event)" />
+            </div>
+          </div>
+          @if (asError()) { <div class="aq-error">{{ asError() }}</div> }
+          <div class="aq-actions">
+            <button class="btn btn-outline" (click)="cancelAddSection()" [disabled]="asSaving()">Cancel</button>
+            <button class="btn btn-accent" (click)="saveSection()" [disabled]="asSaving()">
+              @if (asSaving()) { Creating… } @else { Create Section }
+            </button>
+          </div>
+        </div>
+      } @else {
+        <button class="add-section-btn" (click)="openAddSection()">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+            <path fill-rule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clip-rule="evenodd"/>
+          </svg>
+          Add Section
+        </button>
+      }
+    }
+
+  </div>
+
+  <!-- ── Delete Confirm ─────────────────────────────────────────── -->
+  @if (showDeleteConfirm()) {
+    <div class="modal-backdrop" (click)="showDeleteConfirm.set(false)">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <h3 class="modal-title">Delete "{{ f.formName }}"?</h3>
+        <p class="modal-body">
+          This will permanently remove the form, all its questions, and all collected answers.
+          This action cannot be undone.
+        </p>
+        <div class="modal-actions">
+          <button class="btn btn-outline" (click)="showDeleteConfirm.set(false)" [disabled]="deleting()">
+            Cancel
+          </button>
+          <button class="btn btn-danger" (click)="deleteForm()" [disabled]="deleting()">
+            @if (deleting()) { Deleting… } @else { Delete Permanently }
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+}

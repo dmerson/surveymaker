@@ -1,4 +1,18 @@
-// Styles shared from styles.scss; page-specific additions below.
+.loading-state {
+  text-align: center;
+  color: var(--c-text-light);
+  padding: 3rem;
+}
+
+.error-banner {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
 
 .forms-grid {
   display: grid;
@@ -11,21 +25,71 @@
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-card);
   border: 1px solid var(--c-border);
-  padding: 1.5rem;
-  transition: box-shadow 0.2s, transform 0.2s;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: box-shadow 0.2s;
   &:hover { box-shadow: var(--shadow-hover); }
-  cursor: pointer;
+}
 
-  .form-title  { font-size: 1rem; font-weight: 600; color: var(--c-deep); margin-bottom: 0.35rem; }
-  .form-meta   { font-size: 0.82rem; color: var(--c-text-light); }
-  .form-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 1rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid var(--c-border);
-    font-size: 0.82rem;
-    color: var(--c-text-light);
-  }
+.form-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.form-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--c-deep);
+  margin: 0;
+  flex: 1;
+}
+
+.form-desc {
+  font-size: 0.85rem;
+  color: var(--c-text-light);
+  margin: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.form-meta {
+  display: flex;
+  gap: 1rem;
+  font-size: 0.8rem;
+  color: var(--c-text-light);
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--c-border);
+}
+
+.btn-sm {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.82rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.security-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.15rem 0.55rem;
+  border-radius: 100px;
+  white-space: nowrap;
+
+  &.badge-public  { background: #d1fae5; color: #065f46; }
+  &.badge-private { background: #fef3c7; color: #92400e; }
+  &.badge-url     { background: var(--c-foam); color: var(--c-teal); }
 }
