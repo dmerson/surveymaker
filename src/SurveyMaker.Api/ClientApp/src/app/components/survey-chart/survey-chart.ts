@@ -22,6 +22,7 @@ export class SurveyChart implements OnDestroy {
 
   private readonly canvas = viewChild.required<ElementRef<HTMLCanvasElement>>('canvas');
   private chart: Chart | null = null;
+  private currentJsType: ChartType | null = null;
 
   constructor() {
     effect(() => {
@@ -32,15 +33,17 @@ export class SurveyChart implements OnDestroy {
   ngOnDestroy(): void {
     this.chart?.destroy();
     this.chart = null;
+    this.currentJsType = null;
   }
 
   private render(type: GraphType, labels: string[], values: number[]): void {
-    const el    = this.canvas().nativeElement;
+    const el     = this.canvas().nativeElement;
     const jsType = (type === 'histogram' ? 'bar' : type) as ChartType;
 
-    if (this.chart && this.chart.config.type !== jsType) {
+    if (this.chart && this.currentJsType !== jsType) {
       this.chart.destroy();
       this.chart = null;
+      this.currentJsType = null;
     }
 
     if (!this.chart) {
@@ -49,6 +52,7 @@ export class SurveyChart implements OnDestroy {
         data: this.buildData(type, labels, values),
         options: this.buildOptions(type)
       });
+      this.currentJsType = jsType;
     } else {
       this.chart.data = this.buildData(type, labels, values);
       this.chart.update('none');

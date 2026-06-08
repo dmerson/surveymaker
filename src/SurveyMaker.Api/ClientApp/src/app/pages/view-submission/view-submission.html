@@ -191,9 +191,9 @@
 
                 <!-- 25 · Graph -->
                 @case (T.GRAPH) {
-                  @if ((q.attrs?.sourceQuestionIds?.length ?? 0) >= 2) {
+                  @if ((q.attrs.sourceQuestionIds?.length ?? 0) >= 2) {
                     <app-survey-chart
-                      [graphType]="q.attrs?.graphType ?? 'bar'"
+                      [graphType]="q.attrs.graphType ?? 'bar'"
                       [labels]="graphLabels(q, sub)"
                       [values]="graphValues(q, sub)" />
                   } @else {
