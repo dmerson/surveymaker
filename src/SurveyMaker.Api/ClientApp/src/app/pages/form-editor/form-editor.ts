@@ -275,7 +275,6 @@ export class FormEditor implements OnInit {
       const attrs = JSON.parse(attrsJson);
       if (typeId === 0) {
         if (attrs['html'] != null) this.aqHtml.set(attrs['html'] as string);
-        return;
       }
       if (attrs['required']) this.aqRequired.set(true);
       if ([1, 2].includes(typeId)) {
@@ -336,7 +335,7 @@ export class FormEditor implements OnInit {
     this.aqGraphType.set('bar');
     this.aqGraphSourceIds.set([]);
     this.aqError.set('');
-    if (+typeId === 0) this.aqText.set('');
+    if (+typeId === 0) this.aqText.set('Instruction');
   }
 
   openFormulaWizard(): void {
