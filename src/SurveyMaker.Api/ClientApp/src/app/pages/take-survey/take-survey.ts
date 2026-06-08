@@ -1,6 +1,7 @@
 import { Component, OnInit, computed, signal, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { SurveyService } from '../../services/survey.service';
 import {
   LoadedQuestion, LoadedSection, LoadedSurvey,
@@ -13,6 +14,7 @@ interface MatrixCol { label: string; value: string; isCheckbox: boolean; }
 
 // Question type IDs
 const T = {
+  INSTRUCTION: 0,
   TEXT: 1, LONG_TEXT: 2, NUMBER: 3,
   RADIO: 4, CHECKBOX: 5, DROPDOWN: 6,
   DATE: 7, TIME: 8, DATETIME: 9,
@@ -40,6 +42,7 @@ interface FileAnswer {
 export class TakeSurvey implements OnInit {
   private readonly route         = inject(ActivatedRoute);
   private readonly surveyService = inject(SurveyService);
+  private readonly sanitizer     = inject(DomSanitizer);
 
   // Expose type constants to the template
   readonly T = T;
@@ -217,6 +220,23 @@ export class TakeSurvey implements OnInit {
 
   npsItems(): number[] {
     return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  }
+
+  // ── Instruction rendering ─────────────────────────────────────────────────
+
+  safeHtml(q: LoadedQuestion): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(q.attrs.html ?? '');
+  }
+
+  // ── Previous-answer placeholder resolution ───────────────────────────────
+
+  resolveText(q: LoadedQuestion): string {
+    return q.text.replace(/\{\{Q:(\d+)\}\}/g, (_, idStr: string) => {
+      const id  = parseInt(idStr, 10);
+      const raw = this.answers()[id];
+      if (raw == null || raw === '' || (Array.isArray(raw) && raw.length === 0)) return '___';
+      return Array.isArray(raw) ? raw.join(', ') : raw;
+    });
   }
 
   // ── Matrix helpers ────────────────────────────────────────────────────────
@@ -439,6 +459,7 @@ export class TakeSurvey implements OnInit {
     const answerMap = this.answers();
     return survey.allQuestions
       .map((q): SurveyAnswerPayload | null => {
+        if (q.questionTypeId === T.INSTRUCTION) return null;
         if (q.questionTypeId === T.CALCULATION) {
           const val = this.calcValue(q);
           return val !== '—' ? { questionId: q.questionId, answerScalar: val } : null;
@@ -498,7 +519,7 @@ export class TakeSurvey implements OnInit {
     const newErrors: Record<number, string | null> = {};
     let hasErrors = false;
     for (const q of survey.allQuestions) {
-      if (q.questionTypeId === T.CALCULATION || q.questionTypeId === T.GRAPH) continue;
+      if (q.questionTypeId === T.INSTRUCTION || q.questionTypeId === T.CALCULATION || q.questionTypeId === T.GRAPH) continue;
       const err = this.validate(q);
       newErrors[q.questionId] = err;
       if (err) hasErrors = true;

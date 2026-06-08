@@ -32,11 +32,16 @@
         }
 
         @for (q of section.questions; track q.questionId) {
+
+          @if (q.questionTypeId === T.INSTRUCTION) {
+            <div class="sv-instruction" [innerHTML]="safeHtml(q)"></div>
+          } @else {
+
           <div class="sv-question" [class.sv-question--empty]="!q.answerScalar && !q.answerArr.length">
 
             <div class="sv-q-label">
               <span class="sv-q-num">{{ q.order }}.</span>
-              <span class="sv-q-text">{{ q.text }}</span>
+              <span class="sv-q-text">{{ resolveText(q, sub) }}</span>
             </div>
 
             <div class="sv-q-answer">
@@ -238,6 +243,9 @@
             </div>
 
           </div>
+
+          } <!-- end @else (non-instruction) -->
+
         }
       }
     </div>

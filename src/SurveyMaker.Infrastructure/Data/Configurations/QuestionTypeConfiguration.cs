@@ -13,6 +13,7 @@ public class QuestionTypeConfiguration : IEntityTypeConfiguration<QuestionType>
         builder.Property(e => e.QuestionTypeName).IsRequired().HasMaxLength(50);
 
         builder.HasData(
+            new QuestionType { QuestionTypeId = 0,  QuestionTypeName = "Instruction" },
             new QuestionType { QuestionTypeId = 1,  QuestionTypeName = "Text" },
             new QuestionType { QuestionTypeId = 2,  QuestionTypeName = "Long Text" },
             new QuestionType { QuestionTypeId = 3,  QuestionTypeName = "Number" },

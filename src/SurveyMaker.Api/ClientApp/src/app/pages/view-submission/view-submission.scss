@@ -60,6 +60,22 @@
   margin: 2rem 0 1rem;
 }
 
+// ── Instruction block ─────────────────────────────────────────────────
+.sv-instruction {
+  width: 100%;
+  line-height: 1.65;
+  color: var(--c-text);
+  font-size: 0.95rem;
+
+  h1, h2, h3, h4 { color: var(--c-deep); font-weight: 700; margin: 0.5rem 0; }
+  p  { margin: 0.4rem 0; }
+  ul, ol { padding-left: 1.4rem; margin: 0.4rem 0; }
+  a  { color: var(--c-teal); }
+  strong { font-weight: 700; }
+  em { font-style: italic; }
+  hr { border: none; border-top: 1px solid var(--c-border); margin: 0.75rem 0; }
+}
+
 // ── Question cards ────────────────────────────────────────────────────
 .sv-questions { display: flex; flex-direction: column; gap: 1.1rem; }
 

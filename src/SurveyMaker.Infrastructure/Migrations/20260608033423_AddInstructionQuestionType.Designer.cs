@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SurveyMaker.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using SurveyMaker.Infrastructure.Data;
 namespace SurveyMaker.Infrastructure.Migrations
 {
     [DbContext(typeof(SurveyMakerDbContext))]
-    partial class SurveyMakerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260608033423_AddInstructionQuestionType")]
+    partial class AddInstructionQuestionType
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

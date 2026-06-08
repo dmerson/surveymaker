@@ -80,7 +80,7 @@
                   <tr class="sv-matrix-row" [class.sv-matrix-row-error]="!!errors()[q.questionId]">
                     <td class="sv-matrix-q-cell">
                       <span class="sv-q-num">{{ q.order }}.</span>
-                      {{ q.text }}
+                      {{ resolveText(q) }}
                       @if (q.attrs.required) { <span class="sv-req">*</span> }
                     </td>
                     @for (col of cols; track col.value) {
@@ -118,11 +118,16 @@
 
         <!-- ── Individual question layout ────────────────────────── -->
         @for (q of section.questions; track q.questionId) {
+
+          @if (q.questionTypeId === T.INSTRUCTION) {
+            <div class="sv-instruction" [innerHTML]="safeHtml(q)"></div>
+          } @else {
+
           <div class="sv-question" [class.has-error]="!!errors()[q.questionId]">
 
             <div class="sv-q-label">
               <span class="sv-q-num">{{ q.order }}.</span>
-              <span class="sv-q-text">{{ q.text }}</span>
+              <span class="sv-q-text">{{ resolveText(q) }}</span>
               @if (q.attrs.required) { <span class="sv-req">*</span> }
             </div>
 
@@ -478,6 +483,9 @@
               </div>
             }
           </div>
+
+          } <!-- end @else (non-instruction) -->
+
         }
 
         } <!-- end @else (individual layout) -->

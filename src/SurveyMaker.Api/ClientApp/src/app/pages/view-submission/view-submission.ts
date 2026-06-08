@@ -1,6 +1,7 @@
 import { Component, OnInit, signal, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { SlicePipe } from '@angular/common';
+import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { FormService } from '../../services/form.service';
 import {
   SubmissionDetail, SubmissionSectionDetail, SubmissionQuestionDetail
@@ -9,6 +10,7 @@ import { SurveyChart } from '../../components/survey-chart/survey-chart';
 import { GraphType, ParsedAttrs, ScoredOption } from '../../models/survey.model';
 
 const T = {
+  INSTRUCTION: 0,
   TEXT: 1, LONG_TEXT: 2, NUMBER: 3,
   RADIO: 4, CHECKBOX: 5, DROPDOWN: 6,
   DATE: 7, TIME: 8, DATETIME: 9,
@@ -45,6 +47,7 @@ interface LoadedSubmission extends Omit<SubmissionDetail, 'sections'> {
 export class ViewSubmission implements OnInit {
   private readonly route       = inject(ActivatedRoute);
   private readonly formService = inject(FormService);
+  private readonly sanitizer   = inject(DomSanitizer);
 
   readonly T = T;
 
@@ -127,6 +130,21 @@ export class ViewSubmission implements OnInit {
       if (!ref) return 0;
       const n = parseFloat(ref.answerScalar ?? '');
       return isNaN(n) ? 0 : n;
+    });
+  }
+
+  safeHtml(q: LoadedQuestion): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(q.attrs.html ?? '');
+  }
+
+  resolveText(q: LoadedQuestion, sub: LoadedSubmission): string {
+    return q.text.replace(/\{\{Q:(\d+)\}\}/g, (_, idStr: string) => {
+      const id  = parseInt(idStr, 10);
+      const ref = sub.allQuestions.find(rq => rq.questionId === id);
+      if (!ref) return '___';
+      if (ref.answerArr.length > 0) return ref.answerArr.join(', ');
+      if (ref.answerScalar)         return ref.answerScalar;
+      return '___';
     });
   }
 
