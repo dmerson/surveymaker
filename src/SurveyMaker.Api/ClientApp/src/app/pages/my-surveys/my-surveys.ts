@@ -37,4 +37,10 @@ export class MySurveys implements OnInit {
       }
     });
   }
+
+  assignedStatus(formId: string): 'completed' | 'in-progress' | 'not-started' {
+    if (this.completed().some(s => s.formId === formId)) return 'completed';
+    if (this.inProgress().some(s => s.formId === formId)) return 'in-progress';
+    return 'not-started';
+  }
 }

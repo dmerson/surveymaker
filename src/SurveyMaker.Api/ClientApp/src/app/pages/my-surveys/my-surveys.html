@@ -44,7 +44,22 @@
                   @if (s.description) { · {{ s.description | slice:0:60 }}{{ s.description.length > 60 ? '…' : '' }} }
                 </div>
               </div>
-              <a [routerLink]="['/survey', s.formId]" class="btn btn-primary btn-sm">Take Survey</a>
+              @switch (assignedStatus(s.formId)) {
+                @case ('completed') {
+                  <span class="survey-status complete">Complete</span>
+                }
+                @case ('in-progress') {
+                  <span class="survey-status incomplete">In Progress</span>
+                }
+                @default {
+                  <span class="survey-status not-started">Not Started</span>
+                }
+              }
+              @if (assignedStatus(s.formId) === 'in-progress') {
+                <a [routerLink]="['/survey', s.formId]" class="btn btn-outline btn-sm">Continue</a>
+              } @else if (assignedStatus(s.formId) === 'not-started') {
+                <a [routerLink]="['/survey', s.formId]" class="btn btn-primary btn-sm">Take Survey</a>
+              }
             </div>
           }
         </div>

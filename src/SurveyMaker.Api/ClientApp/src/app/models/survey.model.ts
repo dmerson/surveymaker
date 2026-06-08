@@ -87,6 +87,11 @@ export interface SurveyAnswerPayload {
   answerJson?: string;
 }
 
+export interface ProgressResponse {
+  submissionId: string | null;
+  answers: SurveyAnswerPayload[];
+}
+
 // Questions enriched with pre-parsed attrs — used internally in take-survey
 export interface LoadedQuestion extends SurveyQuestion {
   attrs: ParsedAttrs;

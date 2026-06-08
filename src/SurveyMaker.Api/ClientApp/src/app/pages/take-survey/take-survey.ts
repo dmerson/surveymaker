@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, computed, signal, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { SurveyService } from '../../services/survey.service';
@@ -57,9 +57,17 @@ export class TakeSurvey implements OnInit {
   // error map: questionId → error message or null
   errors      = signal<Record<number, string | null>>({});
 
-  submitting  = signal(false);
-  submitted   = signal(false);
-  submitError = signal('');
+  submitting   = signal(false);
+  submitted    = signal(false);
+  submitError  = signal('');
+  saving       = signal(false);
+  saveMessage  = signal('');
+
+  hasFileQuestions = computed(() => {
+    const s = this.loadedSurvey();
+    if (!s) return false;
+    return s.allQuestions.some(q => q.questionTypeId === T.IMAGE || q.questionTypeId === T.PDF);
+  });
 
   ngOnInit(): void {
     const formId = this.route.snapshot.paramMap.get('id')!;
@@ -67,8 +75,17 @@ export class TakeSurvey implements OnInit {
 
     this.surveyService.getSurvey(formId).subscribe({
       next: detail => {
-        this.loadedSurvey.set(this.loadSurvey(detail));
+        const survey = this.loadSurvey(detail);
+        this.loadedSurvey.set(survey);
         this.loading.set(false);
+        // Load saved progress for authenticated users (non-preview, non-file forms)
+        const hasFiles = survey.allQuestions.some(q => q.questionTypeId === T.IMAGE || q.questionTypeId === T.PDF);
+        if (!this.previewMode() && !hasFiles) {
+          this.surveyService.loadProgress(formId).subscribe({
+            next: prog => { if (prog.answers.length > 0) this.applyProgress(prog.answers, survey); },
+            error: () => { /* not authenticated or no progress — ignore */ }
+          });
+        }
       },
       error: (err) => {
         this.loading.set(false);
@@ -368,6 +385,75 @@ export class TakeSurvey implements OnInit {
     return null;
   }
 
+  // ── Progress ──────────────────────────────────────────────────────────────
+
+  private applyProgress(saved: SurveyAnswerPayload[], survey: LoadedSurvey): void {
+    const answerUpdate: Record<number, string | string[]> = {};
+    for (const a of saved) {
+      const q = survey.allQuestions.find(rq => rq.questionId === a.questionId);
+      if (!q) continue;
+      if (a.answerJson) {
+        try { answerUpdate[a.questionId] = JSON.parse(a.answerJson) as string[]; } catch { /* ignore */ }
+      } else if (a.answerScalar != null) {
+        answerUpdate[a.questionId] = a.answerScalar;
+      }
+    }
+    this.answers.update(a => ({ ...a, ...answerUpdate }));
+  }
+
+  private buildPayload(survey: LoadedSurvey): SurveyAnswerPayload[] {
+    const answerMap = this.answers();
+    return survey.allQuestions
+      .map((q): SurveyAnswerPayload | null => {
+        if (q.questionTypeId === T.CALCULATION) {
+          const val = this.calcValue(q);
+          return val !== '—' ? { questionId: q.questionId, answerScalar: val } : null;
+        }
+        if (q.questionTypeId === T.GRAPH) return null;
+        if (q.questionTypeId === T.IMAGE || q.questionTypeId === T.PDF) {
+          const fa = this.fileAnswers()[q.questionId];
+          if (!fa) return null;
+          return {
+            questionId: q.questionId,
+            answerJson: JSON.stringify({ fileName: fa.fileName, contentType: fa.contentType, data: fa.dataBase64 })
+          };
+        }
+        const raw = answerMap[q.questionId];
+        if (raw == null || raw === '' || (Array.isArray(raw) && raw.length === 0)) return null;
+        if (Array.isArray(raw)) {
+          const resolved = raw.map(v => this.isOtherOpt(v) ? (this.getOtherText(q.questionId) || v) : v);
+          return { questionId: q.questionId, answerJson: JSON.stringify(resolved) };
+        }
+        const scalar = (q.questionTypeId === T.RADIO || q.questionTypeId === T.DROPDOWN)
+          && this.isOtherOpt(raw)
+          ? (this.getOtherText(q.questionId) || raw)
+          : raw;
+        return { questionId: q.questionId, answerScalar: scalar };
+      })
+      .filter((a): a is SurveyAnswerPayload => a !== null);
+  }
+
+  saveProgress(): void {
+    const survey = this.loadedSurvey();
+    if (!survey || this.saving()) return;
+
+    this.saving.set(true);
+    this.saveMessage.set('');
+
+    this.surveyService.saveProgress(survey.formId, this.buildPayload(survey)).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.saveMessage.set('Progress saved.');
+        setTimeout(() => this.saveMessage.set(''), 3000);
+      },
+      error: () => {
+        this.saving.set(false);
+        this.saveMessage.set('Could not save progress.');
+        setTimeout(() => this.saveMessage.set(''), 4000);
+      }
+    });
+  }
+
   // ── Submit ────────────────────────────────────────────────────────────────
 
   submitSurvey(): void {
@@ -394,44 +480,7 @@ export class TakeSurvey implements OnInit {
       return;
     }
 
-    const answerMap = this.answers();
-    const payload = survey.allQuestions
-      .map((q): SurveyAnswerPayload | null => {
-        // Calculation questions: store the evaluated result
-        if (q.questionTypeId === T.CALCULATION) {
-          const val = this.calcValue(q);
-          return val !== '—' ? { questionId: q.questionId, answerScalar: val } : null;
-        }
-        // Graph questions: display only, no answer stored
-        if (q.questionTypeId === T.GRAPH) return null;
-        // File questions: base64 payload
-        if (q.questionTypeId === T.IMAGE || q.questionTypeId === T.PDF) {
-          const fa = this.fileAnswers()[q.questionId];
-          if (!fa) return null;
-          return {
-            questionId: q.questionId,
-            answerJson: JSON.stringify({ fileName: fa.fileName, contentType: fa.contentType, data: fa.dataBase64 })
-          };
-        }
-        const raw = answerMap[q.questionId];
-        if (raw == null || raw === '' || (Array.isArray(raw) && raw.length === 0)) {
-          return null;
-        }
-        if (Array.isArray(raw)) {
-          // Replace 'Other' with the typed text for checkbox lists
-          const resolved = raw.map(v =>
-            this.isOtherOpt(v) ? (this.getOtherText(q.questionId) || v) : v
-          );
-          return { questionId: q.questionId, answerJson: JSON.stringify(resolved) };
-        }
-        // Replace 'Other' with the typed text for radio / dropdown
-        const scalar = (q.questionTypeId === T.RADIO || q.questionTypeId === T.DROPDOWN)
-          && this.isOtherOpt(raw)
-          ? (this.getOtherText(q.questionId) || raw)
-          : raw;
-        return { questionId: q.questionId, answerScalar: scalar };
-      })
-      .filter((a): a is SurveyAnswerPayload => a !== null);
+    const payload = this.buildPayload(survey);
 
     this.submitting.set(true);
     this.submitError.set('');

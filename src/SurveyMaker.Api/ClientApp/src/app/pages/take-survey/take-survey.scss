@@ -326,11 +326,18 @@
 
 .sv-footer {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: 0.75rem;
   margin-top: 2rem;
   padding-top: 1.5rem;
   border-top: 1px solid var(--c-border);
+}
+
+.sv-save-msg {
+  font-size: 0.85rem;
+  color: var(--c-teal);
+  margin-right: auto;
 }
 
 

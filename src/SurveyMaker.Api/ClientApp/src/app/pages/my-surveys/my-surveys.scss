@@ -133,8 +133,9 @@
   white-space: nowrap;
   flex-shrink: 0;
 
-  &.complete   { background: #d1fae5; color: #065f46; }
-  &.incomplete { background: #fef3c7; color: #92400e; }
+  &.complete     { background: #d1fae5; color: #065f46; }
+  &.incomplete   { background: #fef3c7; color: #92400e; }
+  &.not-started  { background: #f1f5f9; color: #64748b; }
 }
 
 .btn-sm {

@@ -49,7 +49,7 @@ public class SurveysController(SurveyMakerDbContext db) : ControllerBase
             .ToListAsync();
 
         var assigned = await db.FormAllowedUsers
-            .Where(a => a.UserEmail == email && a.Form.Published)
+            .Where(a => a.UserEmail.ToLower() == email && a.Form.Published)
             .OrderByDescending(a => a.Form.UpdatedAt)
             .Select(a => new
             {
@@ -137,6 +137,114 @@ public class SurveysController(SurveyMakerDbContext db) : ControllerBase
         });
     }
 
+    // ── Load progress ────────────────────────────────────────────────────────
+
+    [HttpGet("{formId:guid}/progress")]
+    [Authorize]
+    public async Task<IActionResult> LoadProgress(Guid formId)
+    {
+        var email = User.FindFirstValue(ClaimTypes.Email)!.Trim().ToLowerInvariant();
+
+        var existing = await db.FormSubmissions
+            .Include(s => s.Answers)
+            .FirstOrDefaultAsync(s => s.FormId == formId && s.UserEmail == email && !s.IsComplete);
+
+        if (existing is null)
+            return Ok(new { submissionId = (string?)null, answers = Array.Empty<object>() });
+
+        var answers = existing.Answers.Select(a => new
+        {
+            questionId   = a.QuestionId,
+            answerScalar = a.AnswerScalar,
+            answerJson   = a.AnswerJson
+        });
+
+        return Ok(new { submissionId = (string?)existing.SubmissionId.ToString(), answers });
+    }
+
+    // ── Save progress ─────────────────────────────────────────────────────────
+
+    [HttpPost("{formId:guid}/progress")]
+    [Authorize]
+    public async Task<IActionResult> SaveProgress(Guid formId, [FromBody] SurveySubmitRequest request)
+    {
+        var email = User.FindFirstValue(ClaimTypes.Email)!.Trim().ToLowerInvariant();
+
+        var form = await db.Forms
+            .Include(f => f.AllowedUsers)
+            .Include(f => f.Sections)
+                .ThenInclude(s => s.Questions)
+            .FirstOrDefaultAsync(f => f.FormId == formId);
+        if (form is null) return NotFound();
+
+        var creatorEmail = form.FormCreatorEmail?.Trim().ToLowerInvariant();
+
+        if (!form.Published && creatorEmail != email) return NotFound();
+
+        if (form.SecurityTypeId == 2)
+        {
+            var allowed = creatorEmail == email
+                       || form.AllowedUsers.Any(u => u.UserEmail == email);
+            if (!allowed) return Forbid();
+        }
+
+        var questionTypeMap = form.Sections
+            .SelectMany(s => s.Questions)
+            .ToDictionary(q => q.QuestionId, q => q.QuestionTypeId);
+
+        if (questionTypeMap.Values.Any(t => FileTypeIds.Contains(t)))
+            return BadRequest(new { error = "Save progress is not available for forms with file upload questions." });
+
+        var existing = await db.FormSubmissions
+            .FirstOrDefaultAsync(s => s.FormId == formId && s.UserEmail == email && !s.IsComplete);
+
+        FormSubmission submission;
+        if (existing is not null)
+        {
+            var oldAnswers = await db.Answers
+                .Where(a => a.SubmissionId == existing.SubmissionId).ToListAsync();
+            db.Answers.RemoveRange(oldAnswers);
+            await db.SaveChangesAsync();
+            submission = existing;
+        }
+        else
+        {
+            submission = new FormSubmission
+            {
+                FormId    = form.FormId,
+                UserEmail = email,
+                StartedAt = DateTime.UtcNow,
+                IsComplete = false
+            };
+            db.FormSubmissions.Add(submission);
+            await db.SaveChangesAsync();
+        }
+
+        var answers = new List<Answer>();
+        foreach (var a in request.Answers)
+        {
+            if (string.IsNullOrWhiteSpace(a.AnswerScalar) && string.IsNullOrWhiteSpace(a.AnswerJson))
+                continue;
+            questionTypeMap.TryGetValue(a.QuestionId, out var typeId);
+            if (FileTypeIds.Contains(typeId)) continue;
+            answers.Add(new Answer
+            {
+                SubmissionId = submission.SubmissionId,
+                QuestionId   = a.QuestionId,
+                AnswerScalar = a.AnswerScalar?.Trim(),
+                AnswerJson   = a.AnswerJson
+            });
+        }
+
+        if (answers.Count > 0)
+        {
+            db.Answers.AddRange(answers);
+            await db.SaveChangesAsync();
+        }
+
+        return Ok(new { submissionId = submission.SubmissionId });
+    }
+
     // ── Submit survey ─────────────────────────────────────────────────────────
 
     [HttpPost("{formId:guid}/submit")]
@@ -190,16 +298,36 @@ public class SurveysController(SurveyMakerDbContext db) : ControllerBase
                 return BadRequest(new { error = "This survey has reached its response limit." });
         }
 
-        var submission = new FormSubmission
+        // Convert existing in-progress submission, or create a new one
+        var existing = callerEmail is not null
+            ? await db.FormSubmissions.FirstOrDefaultAsync(
+                s => s.FormId == formId && s.UserEmail == callerEmail && !s.IsComplete)
+            : null;
+
+        FormSubmission submission;
+        if (existing is not null)
         {
-            FormId      = form.FormId,
-            UserEmail   = callerEmail,
-            StartedAt   = DateTime.UtcNow,
-            SubmittedAt = DateTime.UtcNow,
-            IsComplete  = true
-        };
-        db.FormSubmissions.Add(submission);
-        await db.SaveChangesAsync();
+            var oldAnswers = await db.Answers
+                .Where(a => a.SubmissionId == existing.SubmissionId).ToListAsync();
+            db.Answers.RemoveRange(oldAnswers);
+            existing.SubmittedAt = DateTime.UtcNow;
+            existing.IsComplete  = true;
+            await db.SaveChangesAsync();
+            submission = existing;
+        }
+        else
+        {
+            submission = new FormSubmission
+            {
+                FormId      = form.FormId,
+                UserEmail   = callerEmail,
+                StartedAt   = DateTime.UtcNow,
+                SubmittedAt = DateTime.UtcNow,
+                IsComplete  = true
+            };
+            db.FormSubmissions.Add(submission);
+            await db.SaveChangesAsync();
+        }
 
         var answers     = new List<Answer>();
         var answerFiles = new List<AnswerFile>();

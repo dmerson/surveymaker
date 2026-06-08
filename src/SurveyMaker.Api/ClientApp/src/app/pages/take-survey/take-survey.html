@@ -425,9 +425,18 @@
 
     <div class="sv-footer">
       <a routerLink="/public-survey" class="btn btn-outline">Cancel</a>
+      @if (!previewMode() && !hasFileQuestions()) {
+        <button type="button" class="btn btn-outline"
+          [disabled]="saving() || submitting()" (click)="saveProgress()">
+          @if (saving()) { Saving… } @else { Save Progress }
+        </button>
+      }
+      @if (saveMessage()) {
+        <span class="sv-save-msg">{{ saveMessage() }}</span>
+      }
       @if (!previewMode()) {
         <button type="button" class="btn btn-accent"
-          [disabled]="submitting()" (click)="submitSurvey()">
+          [disabled]="submitting() || saving()" (click)="submitSurvey()">
           @if (submitting()) { Submitting… } @else { Submit Survey }
         </button>
       }
