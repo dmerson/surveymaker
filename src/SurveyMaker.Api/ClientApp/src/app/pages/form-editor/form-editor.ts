@@ -143,6 +143,7 @@ export class FormEditor implements OnInit {
       hasScored:      [20, 21, 22].includes(id),
       hasScale:       [13].includes(id),
       isYesNo:             id === 19,
+      isInsertPrevAnswer:  id === 23,
       isFormula:           id === 24,
       isGraph:             id === 25,
       isConditionalLogic:  id === 26,
