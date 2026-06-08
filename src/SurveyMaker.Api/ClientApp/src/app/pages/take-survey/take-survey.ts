@@ -45,6 +45,25 @@ export class TakeSurvey implements OnInit {
   private readonly surveyService = inject(SurveyService);
   private readonly sanitizer     = inject(DomSanitizer);
 
+  constructor() {
+    // effect() requires an injection context — must live in constructor, not ngOnInit
+    effect(() => {
+      const { hiddenIds } = this.conditionalState();
+      if (hiddenIds.size === 0) return;
+      const current = untracked(() => this.answers());
+      const updated = { ...current };
+      let changed = false;
+      for (const id of hiddenIds) {
+        const val = updated[id];
+        if (val !== undefined && val !== '' && !(Array.isArray(val) && val.length === 0)) {
+          updated[id] = '';
+          changed = true;
+        }
+      }
+      if (changed) this.answers.set(updated);
+    });
+  }
+
   // Expose type constants to the template
   readonly T = T;
 
@@ -107,23 +126,6 @@ export class TakeSurvey implements OnInit {
   });
 
   ngOnInit(): void {
-    // Clear answers for questions that become hidden by conditional logic
-    effect(() => {
-      const { hiddenIds } = this.conditionalState();
-      if (hiddenIds.size === 0) return;
-      const current = untracked(() => this.answers());
-      const updated = { ...current };
-      let changed = false;
-      for (const id of hiddenIds) {
-        const val = updated[id];
-        if (val !== undefined && val !== '' && !(Array.isArray(val) && val.length === 0)) {
-          updated[id] = '';
-          changed = true;
-        }
-      }
-      if (changed) this.answers.set(updated);
-    });
-
     const formId = this.route.snapshot.paramMap.get('id')!;
     this.previewMode.set(this.route.snapshot.queryParamMap.get('preview') === '1');
 
