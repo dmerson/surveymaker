@@ -6,7 +6,7 @@ import {
   SubmissionDetail, SubmissionSectionDetail, SubmissionQuestionDetail
 } from '../../models/form.model';
 import { SurveyChart } from '../../components/survey-chart/survey-chart';
-import { GraphType } from '../../models/survey.model';
+import { GraphType, ParsedAttrs, ScoredOption } from '../../models/survey.model';
 
 const T = {
   TEXT: 1, LONG_TEXT: 2, NUMBER: 3,
@@ -21,13 +21,6 @@ const T = {
   GRAPH: 25
 } as const;
 
-interface ParsedAttrs {
-  options?: string[] | ScoredOption[];
-  min?: number;
-  max?: number;
-  scale?: number;
-}
-interface ScoredOption { text: string; value: number; }
 
 interface LoadedQuestion extends SubmissionQuestionDetail {
   attrs: ParsedAttrs;
