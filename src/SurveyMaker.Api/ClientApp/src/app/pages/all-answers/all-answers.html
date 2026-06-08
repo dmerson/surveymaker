@@ -38,7 +38,9 @@
               <td class="col-date">{{ row.submittedAt ? (row.submittedAt | slice:0:10) : '—' }}</td>
               @for (cell of row.cells; track $index) {
                 <td class="col-answer">
-                  @if (questions()[$index]?.questionTypeId === 10 && cell) {
+                  @if (questions()[$index]?.questionTypeId === 25) {
+                    <span class="grid-chart-badge">Chart</span>
+                  } @else if (questions()[$index]?.questionTypeId === 10 && cell) {
                     <a [href]="'/api/answers/files/' + cell" target="_blank" rel="noopener">
                       <img class="grid-thumb"
                         [src]="'/api/answers/files/' + cell"

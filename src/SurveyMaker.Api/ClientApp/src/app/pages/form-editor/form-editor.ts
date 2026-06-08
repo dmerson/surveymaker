@@ -4,12 +4,13 @@ import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { FormService } from '../../services/form.service';
 import { FormDetail, QuestionDetail, QuestionType, SectionDetail } from '../../models/form.model';
-import { FormulaToken } from '../../models/survey.model';
+import { FormulaToken, GraphType } from '../../models/survey.model';
 import { FormulaWizard } from '../formula-wizard/formula-wizard';
+import { GraphWizard } from '../graph-wizard/graph-wizard';
 
 @Component({
   selector: 'app-form-editor',
-  imports: [FormsModule, RouterLink, NgTemplateOutlet, FormulaWizard],
+  imports: [FormsModule, RouterLink, NgTemplateOutlet, FormulaWizard, GraphWizard],
   templateUrl: './form-editor.html',
   styleUrl: './form-editor.scss'
 })
@@ -45,6 +46,10 @@ export class FormEditor implements OnInit {
   // formula types (Calculation)
   aqTokens     = signal<FormulaToken[]>([]);
   showFormulaWizard = signal(false);
+  // graph types (Graph)
+  aqGraphType      = signal<GraphType>('bar');
+  aqGraphSourceIds = signal<number[]>([]);
+  showGraphWizard  = signal(false);
   // status
   aqSaving     = signal(false);
   aqError      = signal('');
@@ -85,6 +90,7 @@ export class FormEditor implements OnInit {
       hasScored:      [20, 21, 22].includes(id),
       hasScale:       [13].includes(id),
       isFormula:      id === 24,
+      isGraph:        id === 25,
     };
   });
 
@@ -94,7 +100,8 @@ export class FormEditor implements OnInit {
     return types.filter(t => t.questionTypeId !== 10 && t.questionTypeId !== 11);
   });
 
-  private static readonly NUMERIC_TYPE_IDS = new Set([3, 12, 13, 14, 18, 20, 21, 22]);
+  private static readonly NUMERIC_TYPE_IDS      = new Set([3, 12, 13, 14, 18, 20, 21, 22]);
+  private static readonly GRAPH_SOURCE_TYPE_IDS = new Set([3, 12, 13, 14, 18, 20, 21, 22, 24]);
 
   calcAvailableQuestions = computed(() => {
     const f = this.form();
@@ -103,6 +110,26 @@ export class FormEditor implements OnInit {
     return f.sections
       .flatMap(s => s.questions)
       .filter(q => FormEditor.NUMERIC_TYPE_IDS.has(q.questionTypeId) && q.questionId !== editId);
+  });
+
+  graphAvailableQuestions = computed(() => {
+    const f = this.form();
+    if (!f) return [];
+    const editId = this.aqEditingQuestionId();
+    return f.sections
+      .flatMap(s => s.questions)
+      .filter(q => FormEditor.GRAPH_SOURCE_TYPE_IDS.has(q.questionTypeId) && q.questionId !== editId);
+  });
+
+  graphPreview = computed(() => {
+    const ids = this.aqGraphSourceIds();
+    if (ids.length < 2) return 'No graph configured';
+    const type = this.aqGraphType();
+    const f = this.form();
+    if (!f) return `${type} chart — ${ids.length} questions`;
+    const qs = f.sections.flatMap(s => s.questions);
+    const names = ids.map(id => qs.find(q => q.questionId === id)?.text ?? `Q${id}`).join(', ');
+    return `${type.charAt(0).toUpperCase() + type.slice(1)} chart — ${names}`;
   });
 
   formulaPreview = computed(() => {
@@ -209,6 +236,10 @@ export class FormEditor implements OnInit {
       if (typeId === 24 && Array.isArray(attrs['tokens'])) {
         this.aqTokens.set(attrs['tokens'] as FormulaToken[]);
       }
+      if (typeId === 25) {
+        if (attrs['graphType']) this.aqGraphType.set(attrs['graphType'] as GraphType);
+        if (Array.isArray(attrs['sourceQuestionIds'])) this.aqGraphSourceIds.set(attrs['sourceQuestionIds'] as number[]);
+      }
     } catch { /* ignore invalid JSON */ }
   }
 
@@ -222,6 +253,8 @@ export class FormEditor implements OnInit {
     this.aqScored.set([]); this.aqPendText.set(''); this.aqPendVal.set('');
     this.aqScale.set(5);
     this.aqTokens.set([]);
+    this.aqGraphType.set('bar');
+    this.aqGraphSourceIds.set([]);
     this.aqError.set('');
   }
 
@@ -233,6 +266,8 @@ export class FormEditor implements OnInit {
     this.aqScored.set([]); this.aqPendText.set(''); this.aqPendVal.set('');
     this.aqScale.set(5);
     this.aqTokens.set([]);
+    this.aqGraphType.set('bar');
+    this.aqGraphSourceIds.set([]);
     this.aqError.set('');
   }
 
@@ -248,6 +283,16 @@ export class FormEditor implements OnInit {
   onFormulaWizardCancelled(): void {
     this.showFormulaWizard.set(false);
   }
+
+  openGraphWizard(): void { this.showGraphWizard.set(true); }
+
+  onGraphSaved(cfg: { graphType: GraphType; sourceQuestionIds: number[] }): void {
+    this.aqGraphType.set(cfg.graphType);
+    this.aqGraphSourceIds.set(cfg.sourceQuestionIds);
+    this.showGraphWizard.set(false);
+  }
+
+  onGraphWizardCancelled(): void { this.showGraphWizard.set(false); }
 
   addOption(): void {
     const opt = this.aqPendOpt().trim();
@@ -301,6 +346,10 @@ export class FormEditor implements OnInit {
     }
     if (f.isFormula && this.aqTokens().length > 0) {
       attrs['tokens'] = this.aqTokens();
+    }
+    if (f.isGraph && this.aqGraphSourceIds().length >= 2) {
+      attrs['graphType']        = this.aqGraphType();
+      attrs['sourceQuestionIds'] = this.aqGraphSourceIds();
     }
 
     // Always store valid JSON; never null

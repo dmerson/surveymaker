@@ -5,6 +5,8 @@ import { FormService } from '../../services/form.service';
 import {
   SubmissionDetail, SubmissionSectionDetail, SubmissionQuestionDetail
 } from '../../models/form.model';
+import { SurveyChart } from '../../components/survey-chart/survey-chart';
+import { GraphType } from '../../models/survey.model';
 
 const T = {
   TEXT: 1, LONG_TEXT: 2, NUMBER: 3,
@@ -14,7 +16,9 @@ const T = {
   RATING: 12, LIKERT: 13, RANGE: 14,
   EMAIL: 15, PHONE: 16, URL: 17,
   NPS: 18, YES_NO: 19,
-  CHECKBOX_VAL: 20, DROPDOWN_VAL: 21, RADIO_VAL: 22
+  CHECKBOX_VAL: 20, DROPDOWN_VAL: 21, RADIO_VAL: 22,
+  CALCULATION: 24,
+  GRAPH: 25
 } as const;
 
 interface ParsedAttrs {
@@ -36,11 +40,12 @@ interface LoadedSection extends Omit<SubmissionSectionDetail, 'questions'> {
 
 interface LoadedSubmission extends Omit<SubmissionDetail, 'sections'> {
   sections: LoadedSection[];
+  allQuestions: LoadedQuestion[];
 }
 
 @Component({
   selector: 'app-view-submission',
-  imports: [RouterLink, SlicePipe],
+  imports: [RouterLink, SlicePipe, SurveyChart],
   templateUrl: './view-submission.html',
   styleUrl: './view-submission.scss'
 })
@@ -71,15 +76,20 @@ export class ViewSubmission implements OnInit {
   }
 
   private process(detail: SubmissionDetail): LoadedSubmission {
+    const allQuestions: LoadedQuestion[] = [];
     const sections: LoadedSection[] = detail.sections.map(s => ({
       ...s,
-      questions: s.questions.map(q => ({
-        ...q,
-        attrs:     this.parseAttrs(q.questionAttributes),
-        answerArr: q.answerJson ? (JSON.parse(q.answerJson) as string[]) : []
-      }))
+      questions: s.questions.map(q => {
+        const lq: LoadedQuestion = {
+          ...q,
+          attrs:     this.parseAttrs(q.questionAttributes),
+          answerArr: q.answerJson ? (JSON.parse(q.answerJson) as string[]) : []
+        };
+        allQuestions.push(lq);
+        return lq;
+      })
     }));
-    return { ...detail, sections };
+    return { ...detail, sections, allQuestions };
   }
 
   private parseAttrs(json: string | undefined): ParsedAttrs {
@@ -109,6 +119,23 @@ export class ViewSubmission implements OnInit {
 
   rangeMin(q: LoadedQuestion): number { return q.attrs.min ?? 0; }
   rangeMax(q: LoadedQuestion): number { return q.attrs.max ?? 100; }
+
+  graphLabels(q: LoadedQuestion, sub: LoadedSubmission): string[] {
+    return (q.attrs.sourceQuestionIds ?? []).map(id => {
+      const ref = sub.allQuestions.find(rq => rq.questionId === id);
+      const txt = ref?.text ?? `Q${id}`;
+      return txt.length > 24 ? txt.slice(0, 24) + '…' : txt;
+    });
+  }
+
+  graphValues(q: LoadedQuestion, sub: LoadedSubmission): number[] {
+    return (q.attrs.sourceQuestionIds ?? []).map(id => {
+      const ref = sub.allQuestions.find(rq => rq.questionId === id);
+      if (!ref) return 0;
+      const n = parseFloat(ref.answerScalar ?? '');
+      return isNaN(n) ? 0 : n;
+    });
+  }
 
   rangePercent(q: LoadedQuestion): number {
     if (!q.answerScalar) return 0;

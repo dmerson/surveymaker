@@ -7,6 +7,7 @@ import {
   ParsedAttrs, ScoredOption, SurveyAnswerPayload, SurveyDetail
 } from '../../models/survey.model';
 import { evaluateFormula } from '../../utils/formula-evaluator';
+import { SurveyChart } from '../../components/survey-chart/survey-chart';
 
 // Question type IDs
 const T = {
@@ -14,6 +15,7 @@ const T = {
   RADIO: 4, CHECKBOX: 5, DROPDOWN: 6,
   DATE: 7, TIME: 8, DATETIME: 9,
   IMAGE: 10, PDF: 11,
+  GRAPH: 25,
   RATING: 12, LIKERT: 13, RANGE: 14,
   EMAIL: 15, PHONE: 16, URL: 17,
   NPS: 18, YES_NO: 19,
@@ -29,7 +31,7 @@ interface FileAnswer {
 
 @Component({
   selector: 'app-take-survey',
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, SurveyChart],
   templateUrl: './take-survey.html',
   styleUrl: './take-survey.scss'
 })
@@ -246,6 +248,56 @@ export class TakeSurvey implements OnInit {
     return String(Math.round(result * 10000) / 10000);
   }
 
+  // ── Graph helpers ─────────────────────────────────────────────────────────
+
+  private getNumericAnswer(questionId: number): number {
+    const survey = this.loadedSurvey();
+    if (!survey) return 0;
+    const ref = survey.allQuestions.find(rq => rq.questionId === questionId);
+    if (!ref) return 0;
+    const raw = this.answers()[questionId];
+    switch (ref.questionTypeId) {
+      case T.CHECKBOX_VAL: {
+        const selected = (raw as string[]) ?? [];
+        const opts = (ref.attrs.options as ScoredOption[]) ?? [];
+        return selected.reduce((sum, text) => {
+          const o = opts.find(o => o.text === text);
+          return sum + (o?.value ?? 0);
+        }, 0);
+      }
+      case T.DROPDOWN_VAL:
+      case T.RADIO_VAL: {
+        const text = (raw as string) ?? '';
+        const opts = (ref.attrs.options as ScoredOption[]) ?? [];
+        const o = opts.find(o => o.text === text);
+        return o?.value ?? 0;
+      }
+      case T.CALCULATION: {
+        const v = parseFloat(this.calcValue(ref));
+        return isNaN(v) ? 0 : v;
+      }
+      default: {
+        const n = parseFloat((raw as string) ?? '');
+        return isNaN(n) ? 0 : n;
+      }
+    }
+  }
+
+  graphLabels(q: LoadedQuestion): string[] {
+    const survey = this.loadedSurvey();
+    if (!survey) return [];
+    return (q.attrs.sourceQuestionIds ?? []).map(id => {
+      const ref = survey.allQuestions.find(rq => rq.questionId === id);
+      const txt = ref?.text ?? `Q${id}`;
+      return txt.length > 24 ? txt.slice(0, 24) + '…' : txt;
+    });
+  }
+
+  graphValues(q: LoadedQuestion): number[] {
+    void this.answers(); // track signal for reactivity
+    return (q.attrs.sourceQuestionIds ?? []).map(id => this.getNumericAnswer(id));
+  }
+
   // ── Validation ────────────────────────────────────────────────────────────
 
   onBlur(q: LoadedQuestion): void {
@@ -326,7 +378,7 @@ export class TakeSurvey implements OnInit {
     const newErrors: Record<number, string | null> = {};
     let hasErrors = false;
     for (const q of survey.allQuestions) {
-      if (q.questionTypeId === T.CALCULATION) continue;
+      if (q.questionTypeId === T.CALCULATION || q.questionTypeId === T.GRAPH) continue;
       const err = this.validate(q);
       newErrors[q.questionId] = err;
       if (err) hasErrors = true;
@@ -350,6 +402,8 @@ export class TakeSurvey implements OnInit {
           const val = this.calcValue(q);
           return val !== '—' ? { questionId: q.questionId, answerScalar: val } : null;
         }
+        // Graph questions: display only, no answer stored
+        if (q.questionTypeId === T.GRAPH) return null;
         // File questions: base64 payload
         if (q.questionTypeId === T.IMAGE || q.questionTypeId === T.PDF) {
           const fa = this.fileAnswers()[q.questionId];

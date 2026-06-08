@@ -222,6 +222,18 @@
             </button>
           </div>
         }
+
+        @if (typeFlags().isGraph) {
+          <div class="aq-field">
+            <label class="aq-label">Graph</label>
+            <div class="formula-preview-text">{{ graphPreview() }}</div>
+            <button type="button" class="btn btn-outline btn-sm"
+              style="margin-top:0.4rem"
+              (click)="openGraphWizard()">
+              {{ aqGraphSourceIds().length >= 2 ? 'Edit Graph' : 'Configure Graph' }}
+            </button>
+          </div>
+        }
       }
 
       @if (aqError()) {
@@ -387,5 +399,16 @@
       (saved)="onFormulaSaved($event)"
       (cancelled)="onFormulaWizardCancelled()">
     </app-formula-wizard>
+  }
+
+  <!-- ── Graph Wizard ───────────────────────────────────────────── -->
+  @if (showGraphWizard()) {
+    <app-graph-wizard
+      [questions]="graphAvailableQuestions()"
+      [initialType]="aqGraphType()"
+      [initialIds]="aqGraphSourceIds()"
+      (saved)="onGraphSaved($event)"
+      (cancelled)="onGraphWizardCancelled()">
+    </app-graph-wizard>
   }
 }

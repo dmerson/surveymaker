@@ -1,0 +1,66 @@
+<div class="modal-backdrop" (click)="cancel()">
+  <div class="gw-modal" (click)="$event.stopPropagation()">
+
+    <div class="gw-header">
+      <h2 class="gw-title">Configure Graph</h2>
+      <button class="gw-close" (click)="cancel()">×</button>
+    </div>
+
+    <!-- Step 1: graph type -->
+    <section class="gw-section">
+      <h3 class="gw-section-title">Graph Type</h3>
+      <div class="gw-type-grid">
+        @for (gt of graphTypes; track gt.value) {
+          <button type="button" class="gw-type-btn"
+            [class.active]="selectedType() === gt.value"
+            (click)="selectedType.set(gt.value)">
+            <span class="gw-type-icon">{{ gt.icon }}</span>
+            <span class="gw-type-label">{{ gt.label }}</span>
+          </button>
+        }
+      </div>
+    </section>
+
+    <!-- Step 2: source questions -->
+    <section class="gw-section">
+      <h3 class="gw-section-title">
+        Source Questions
+        <span class="gw-section-hint">select 2 or more numeric questions</span>
+      </h3>
+      @if (questions().length === 0) {
+        <p class="gw-empty">No numeric questions found in this form. Add Number, Rating, Range, or similar questions first.</p>
+      } @else {
+        <div class="gw-q-list">
+          @for (q of questions(); track q.questionId) {
+            <label class="gw-q-row" [class.gw-q-row--selected]="isSelected(q.questionId)">
+              <input type="checkbox"
+                [checked]="isSelected(q.questionId)"
+                (change)="toggleSource(q.questionId)" />
+              <span class="gw-q-text">{{ q.text }}</span>
+              <span class="gw-q-type">{{ q.questionTypeName }}</span>
+            </label>
+          }
+        </div>
+      }
+    </section>
+
+    <!-- Preview -->
+    @if (previewReady()) {
+      <section class="gw-section gw-preview">
+        <h3 class="gw-section-title">Preview <span class="gw-section-hint">(sample values)</span></h3>
+        <app-survey-chart
+          [graphType]="selectedType()"
+          [labels]="previewLabels()"
+          [values]="previewValues()" />
+      </section>
+    }
+
+    <div class="gw-actions">
+      <button class="btn btn-outline" (click)="cancel()">Cancel</button>
+      <button class="btn btn-accent" [disabled]="!canSave()" (click)="save()">
+        Save Graph
+      </button>
+    </div>
+
+  </div>
+</div>

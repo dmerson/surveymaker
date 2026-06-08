@@ -29,6 +29,8 @@ export interface SurveyQuestion {
   questionAttributes?: string;
 }
 
+export type GraphType = 'bar' | 'line' | 'histogram' | 'pie' | 'radar';
+
 export interface ParsedAttrs {
   required?: boolean;
   min?: number;
@@ -36,6 +38,8 @@ export interface ParsedAttrs {
   options?: string[] | ScoredOption[];
   scale?: number;
   tokens?: FormulaToken[];
+  graphType?: GraphType;
+  sourceQuestionIds?: number[];
 }
 
 export type FormulaToken =

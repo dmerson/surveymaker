@@ -375,6 +375,18 @@
                   </div>
                 }
 
+                <!-- 25 · Graph -->
+                @case (T.GRAPH) {
+                  @if ((q.attrs.sourceQuestionIds?.length ?? 0) >= 2) {
+                    <app-survey-chart
+                      [graphType]="q.attrs.graphType ?? 'bar'"
+                      [labels]="graphLabels(q)"
+                      [values]="graphValues(q)" />
+                  } @else {
+                    <p class="sv-unsupported">Graph not configured — edit this question in the form editor to add source questions.</p>
+                  }
+                }
+
                 <!-- 24 · Calculation -->
                 @case (T.CALCULATION) {
                   <div class="sv-calc-result">

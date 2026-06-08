@@ -36,7 +36,8 @@ public class QuestionTypeConfiguration : IEntityTypeConfiguration<QuestionType>
             new QuestionType { QuestionTypeId = 21, QuestionTypeName = "Dropdown With Number Values" },
             new QuestionType { QuestionTypeId = 22, QuestionTypeName = "Radio With Number Values" },
             new QuestionType { QuestionTypeId = 23, QuestionTypeName = "Insert Previous Answer" },
-            new QuestionType { QuestionTypeId = 24, QuestionTypeName = "Calculation" }
+            new QuestionType { QuestionTypeId = 24, QuestionTypeName = "Calculation" },
+            new QuestionType { QuestionTypeId = 25, QuestionTypeName = "Graph" }
         );
     }
 }

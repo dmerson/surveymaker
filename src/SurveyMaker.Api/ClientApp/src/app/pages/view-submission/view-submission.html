@@ -189,6 +189,18 @@
                   </div>
                 }
 
+                <!-- 25 · Graph -->
+                @case (T.GRAPH) {
+                  @if ((q.attrs?.sourceQuestionIds?.length ?? 0) >= 2) {
+                    <app-survey-chart
+                      [graphType]="q.attrs?.graphType ?? 'bar'"
+                      [labels]="graphLabels(q, sub)"
+                      [values]="graphValues(q, sub)" />
+                  } @else {
+                    <div class="sv-answer-box sv-answer-box--inline">—</div>
+                  }
+                }
+
                 <!-- 10 · Image -->
                 @case (T.IMAGE) {
                   @if (q.answerScalar) {
