@@ -107,6 +107,7 @@ public class FormsController(SurveyMakerDbContext db) : ControllerBase
                 sectionId   = s.SectionId,
                 sectionName = s.SectionName,
                 order       = s.Order,
+                isMatrix    = s.IsMatrix,
                 questions   = s.Questions.Select(q => new
                 {
                     questionId         = q.QuestionId,
@@ -391,6 +392,21 @@ public class FormsController(SurveyMakerDbContext db) : ControllerBase
         if (section is null) return NotFound();
 
         section.SectionName = request.SectionName?.Trim() ?? string.Empty;
+
+        if (request.Order.HasValue && request.Order.Value > 0 && request.Order.Value != section.Order)
+        {
+            var conflicting = await db.Sections
+                .FirstOrDefaultAsync(s => s.FormId == formId
+                                       && s.Order == request.Order.Value
+                                       && s.SectionId != sectionId);
+            if (conflicting is not null)
+                conflicting.Order = section.Order;
+            section.Order = request.Order.Value;
+        }
+
+        if (request.IsMatrix.HasValue)
+            section.IsMatrix = request.IsMatrix.Value;
+
         await db.SaveChangesAsync();
         return NoContent();
     }
@@ -473,8 +489,19 @@ public class FormsController(SurveyMakerDbContext db) : ControllerBase
 
         question.Text               = request.Text.Trim();
         question.QuestionTypeId     = request.QuestionTypeId;
-        question.Order              = request.Order > 0 ? request.Order : question.Order;
         question.QuestionAttributes = request.QuestionAttributes;
+
+        int newOrder = request.Order > 0 ? request.Order : question.Order;
+        if (newOrder != question.Order)
+        {
+            var conflicting = await db.Questions
+                .FirstOrDefaultAsync(q => q.SectionId == sectionId
+                                       && q.Order == newOrder
+                                       && q.QuestionId != questionId);
+            if (conflicting is not null)
+                conflicting.Order = question.Order;
+            question.Order = newOrder;
+        }
 
         await db.SaveChangesAsync();
         return Ok();
@@ -505,6 +532,6 @@ public class FormsController(SurveyMakerDbContext db) : ControllerBase
 public record CreateFormRequest(string FormName, string? Description, int SecurityTypeId = 1);
 public record AddQuestionRequest(int QuestionTypeId, string Text, int Order, string? QuestionAttributes);
 public record AddSectionRequest(string? SectionName, int Order);
-public record RenameSectionRequest(string? SectionName);
+public record RenameSectionRequest(string? SectionName, int? Order, bool? IsMatrix);
 public record PatchFormRequest(string? FormName, string? Description, bool RandomizeOrder, int? Quota, bool Published, int SecurityTypeId = 1);
 public record AddAllowedUserRequest(string UserEmail);

@@ -77,8 +77,8 @@ export class FormService {
     return this.http.post<SectionDetail>(`/api/forms/${formId}/sections`, { sectionName, order });
   }
 
-  updateSection(formId: string, sectionId: number, sectionName: string): Observable<void> {
-    return this.http.patch<void>(`/api/forms/${formId}/sections/${sectionId}`, { sectionName });
+  updateSection(formId: string, sectionId: number, sectionName: string, order?: number, isMatrix?: boolean): Observable<void> {
+    return this.http.patch<void>(`/api/forms/${formId}/sections/${sectionId}`, { sectionName, order, isMatrix });
   }
 
   removeSection(formId: string, sectionId: number): Observable<void> {

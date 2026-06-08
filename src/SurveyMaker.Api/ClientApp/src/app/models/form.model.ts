@@ -110,6 +110,7 @@ export interface SectionDetail {
   sectionId: number;
   sectionName: string;
   order: number;
+  isMatrix: boolean;
   questions: QuestionDetail[];
 }
 

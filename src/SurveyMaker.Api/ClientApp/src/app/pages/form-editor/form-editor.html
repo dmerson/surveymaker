@@ -4,7 +4,7 @@
 } @else if (loadError()) {
   <div class="editor-error">{{ loadError() }}</div>
 
-} @else if (form(); as f) {
+} @else if (sortedForm(); as f) {
   <div class="editor-wrap">
 
     <!-- ── Header ────────────────────────────────────────────────── -->
@@ -242,22 +242,36 @@
     </ng-template>
 
     <!-- ── Sections ───────────────────────────────────────────────── -->
-    @for (section of f.sections; track section.sectionId) {
+    @for (section of f.sections; track section.sectionId; let isFirstSec = $first, isLastSec = $last) {
       <div class="section-card" [class.active]="aqSectionId() === section.sectionId">
 
         <div class="section-header">
           @if (esSectionId() === section.sectionId) {
-            <!-- Inline rename form -->
-            <div class="section-rename-row">
-              <input class="section-name-input" type="text" placeholder="Section name (blank = hidden)"
-                [ngModel]="esName()" (ngModelChange)="esName.set($event)"
-                (keydown.enter)="saveEditSection()" (keydown.escape)="cancelEditSection()" />
-              <button class="btn btn-accent btn-sm" [disabled]="esSaving()" (click)="saveEditSection()">
-                @if (esSaving()) { Saving… } @else { Save }
-              </button>
-              <button class="btn btn-outline btn-sm" [disabled]="esSaving()" (click)="cancelEditSection()">Cancel</button>
+            <!-- Section settings panel -->
+            <div class="section-edit-panel">
+              <div class="section-settings-row">
+                <input class="section-name-input" type="text" placeholder="Section name (blank = hidden)"
+                  [ngModel]="esName()" (ngModelChange)="esName.set($event)"
+                  (keydown.escape)="cancelEditSection()" />
+                <div class="section-setting-group">
+                  <label class="aq-label">Order</label>
+                  <input class="aq-input section-order-input" type="number" min="1"
+                    [max]="f.sections.length"
+                    [ngModel]="esOrder()" (ngModelChange)="esOrder.set(+$event)" />
+                </div>
+                <label class="aq-required-toggle">
+                  <input type="checkbox" [ngModel]="esIsMatrix()" (ngModelChange)="esIsMatrix.set($event)" />
+                  Matrix
+                </label>
+              </div>
+              @if (esError()) { <div class="aq-error" style="margin-top:0.25rem">{{ esError() }}</div> }
+              <div class="aq-actions" style="margin-top:0.5rem">
+                <button class="btn btn-outline btn-sm" [disabled]="esSaving()" (click)="cancelEditSection()">Cancel</button>
+                <button class="btn btn-accent btn-sm" [disabled]="esSaving()" (click)="saveEditSection()">
+                  @if (esSaving()) { Saving… } @else { Save }
+                </button>
+              </div>
             </div>
-            @if (esError()) { <div class="aq-error" style="margin-top:0.25rem">{{ esError() }}</div> }
           } @else if (deleteSectionId() === section.sectionId) {
             <!-- Inline delete confirmation -->
             <div class="section-delete-row">
@@ -277,8 +291,25 @@
             } @else {
               <h2 class="section-heading muted">Section {{ section.order }}</h2>
             }
+            @if (section.isMatrix) {
+              <span class="section-badge">Matrix</span>
+            }
             <div class="section-header-actions">
-              <button class="section-action-btn" title="Rename section"
+              @if (f.sections.length > 1) {
+                <button class="section-action-btn" title="Move up"
+                  [disabled]="isFirstSec" (click)="reorderSection(section, 'up')">
+                  <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13">
+                    <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"/>
+                  </svg>
+                </button>
+                <button class="section-action-btn" title="Move down"
+                  [disabled]="isLastSec" (click)="reorderSection(section, 'down')">
+                  <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13">
+                    <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                  </svg>
+                </button>
+              }
+              <button class="section-action-btn" title="Section settings"
                 (click)="startEditSection(section)">
                 <svg viewBox="0 0 20 20" fill="currentColor" width="13" height="13">
                   <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z"/>
@@ -299,7 +330,7 @@
         <!-- Question list -->
         @if (section.questions.length > 0) {
           <div class="question-list">
-            @for (q of section.questions; track q.questionId) {
+            @for (q of section.questions; track q.questionId; let isFirstQ = $first, isLastQ = $last) {
               <!--
                 question-group wraps the row + its inline edit panel so they
                 collapse together with no gap between them.
@@ -311,6 +342,20 @@
                     <span class="q-text">{{ q.text }}</span>
                     <span class="q-badge">{{ q.questionTypeName }}</span>
                   </div>
+                  <button class="q-reorder" title="Move up"
+                    [disabled]="isFirstQ || aqEditingQuestionId() !== null"
+                    (click)="reorderQuestion(section, q, 'up')">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="12" height="12">
+                      <path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 010 1.414z" clip-rule="evenodd"/>
+                    </svg>
+                  </button>
+                  <button class="q-reorder" title="Move down"
+                    [disabled]="isLastQ || aqEditingQuestionId() !== null"
+                    (click)="reorderQuestion(section, q, 'down')">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="12" height="12">
+                      <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
+                    </svg>
+                  </button>
                   <button class="q-edit" title="Edit question"
                     (click)="editQuestion(section, q)"
                     [disabled]="aqEditingQuestionId() !== null && aqEditingQuestionId() !== q.questionId">

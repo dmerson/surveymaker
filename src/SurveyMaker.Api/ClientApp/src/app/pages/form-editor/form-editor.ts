@@ -64,6 +64,8 @@ export class FormEditor implements OnInit {
   // ── Edit Section state ────────────────────────────────────────────────────
   esSectionId = signal<number | null>(null);  // null = not editing
   esName      = signal('');
+  esOrder     = signal(1);
+  esIsMatrix  = signal(false);
   esSaving    = signal(false);
   esError     = signal('');
   // Delete confirm
@@ -88,6 +90,20 @@ export class FormEditor implements OnInit {
   hasAnyQuestion = computed(() =>
     (this.form()?.sections ?? []).some(s => s.questions.length > 0)
   );
+
+  sortedForm = computed(() => {
+    const f = this.form();
+    if (!f) return null;
+    return {
+      ...f,
+      sections: [...f.sections]
+        .sort((a, b) => a.order - b.order)
+        .map(s => ({
+          ...s,
+          questions: [...s.questions].sort((a, b) => a.order - b.order)
+        }))
+    };
+  });
 
   typeFlags = computed(() => {
     const id = this.aqTypeId();
@@ -493,6 +509,8 @@ export class FormEditor implements OnInit {
   startEditSection(section: SectionDetail): void {
     this.esSectionId.set(section.sectionId);
     this.esName.set(section.sectionName);
+    this.esOrder.set(section.order);
+    this.esIsMatrix.set(section.isMatrix);
     this.esError.set('');
   }
 
@@ -505,21 +523,80 @@ export class FormEditor implements OnInit {
     if (this.esSaving()) return;
     this.esSaving.set(true);
     this.esError.set('');
-    const sectionId = this.esSectionId()!;
-    const name = this.esName().trim();
+    const sectionId   = this.esSectionId()!;
+    const name        = this.esName().trim();
+    const order       = this.esOrder();
+    const isMatrix    = this.esIsMatrix();
+    const currentSec  = this.form()!.sections.find(s => s.sectionId === sectionId)!;
+    const oldOrder    = currentSec.order;
 
-    this.formService.updateSection(this.form()!.formId, sectionId, name).subscribe({
+    this.formService.updateSection(this.form()!.formId, sectionId, name, order, isMatrix).subscribe({
       next: () => {
         const updated = { ...this.form()! };
+        // Apply swap if order changed
+        if (order !== oldOrder) {
+          const conflict = updated.sections.find(s => s.order === order && s.sectionId !== sectionId);
+          if (conflict) conflict.order = oldOrder;
+        }
         const sec = updated.sections.find(s => s.sectionId === sectionId)!;
         sec.sectionName = name;
-        this.form.set(updated);
+        sec.order       = order;
+        sec.isMatrix    = isMatrix;
+        this.form.set({ ...updated });
         this.esSectionId.set(null);
         this.esSaving.set(false);
       },
       error: () => {
-        this.esError.set('Failed to rename section.');
+        this.esError.set('Failed to update section.');
         this.esSaving.set(false);
+      }
+    });
+  }
+
+  reorderSection(section: SectionDetail, dir: 'up' | 'down'): void {
+    const sorted = [...(this.form()?.sections ?? [])].sort((a, b) => a.order - b.order);
+    const idx = sorted.findIndex(s => s.sectionId === section.sectionId);
+    const targetIdx = dir === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= sorted.length) return;
+    const target   = sorted[targetIdx];
+    const newOrder = target.order;
+    const oldOrder = section.order;
+
+    this.formService.updateSection(
+      this.form()!.formId, section.sectionId, section.sectionName, newOrder, section.isMatrix
+    ).subscribe({
+      next: () => {
+        const updated = { ...this.form()! };
+        updated.sections = updated.sections.map(s =>
+          s.sectionId === section.sectionId ? { ...s, order: newOrder } :
+          s.sectionId === target.sectionId  ? { ...s, order: oldOrder } : s
+        );
+        this.form.set(updated);
+      }
+    });
+  }
+
+  reorderQuestion(section: SectionDetail, q: QuestionDetail, dir: 'up' | 'down'): void {
+    const sorted = [...section.questions].sort((a, b) => a.order - b.order);
+    const idx = sorted.findIndex(x => x.questionId === q.questionId);
+    const targetIdx = dir === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= sorted.length) return;
+    const target   = sorted[targetIdx];
+    const newOrder = target.order;
+    const oldOrder = q.order;
+
+    this.formService.updateQuestion(
+      this.form()!.formId, section.sectionId, q.questionId,
+      q.questionTypeId, q.text, newOrder, q.questionAttributes ?? '{}'
+    ).subscribe({
+      next: () => {
+        const updated = { ...this.form()! };
+        const sec = updated.sections.find(s => s.sectionId === section.sectionId)!;
+        sec.questions = sec.questions.map(x =>
+          x.questionId === q.questionId     ? { ...x, order: newOrder } :
+          x.questionId === target.questionId ? { ...x, order: oldOrder } : x
+        );
+        this.form.set({ ...updated });
       }
     });
   }

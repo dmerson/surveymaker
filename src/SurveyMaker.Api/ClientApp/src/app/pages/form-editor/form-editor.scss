@@ -230,11 +230,47 @@
   &--delete:hover { color: #dc2626; }
 }
 
+.section-edit-panel {
+  flex: 1;
+}
+
+.section-settings-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.section-setting-group {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+
+  .aq-label { margin: 0; font-size: 0.8rem; }
+}
+
+.section-order-input {
+  width: 60px;
+  min-width: 60px;
+  padding: 0.28rem 0.45rem;
+}
+
 .section-rename-row {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   flex: 1;
+}
+
+.section-badge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--c-teal);
+  background: var(--c-foam);
+  border-radius: 100px;
+  padding: 0.1rem 0.5rem;
+  white-space: nowrap;
 }
 
 .section-name-input {
@@ -301,6 +337,13 @@
 .q-badge {
   font-size: 0.72rem; font-weight: 600; color: var(--c-teal);
   background: var(--c-foam); border-radius: 100px; padding: 0.12rem 0.55rem; white-space: nowrap;
+}
+
+.q-reorder {
+  background: none; border: none; cursor: pointer; color: var(--c-text-light);
+  padding: 0.2rem; border-radius: 4px; display: flex; line-height: 1;
+  &:hover:not(:disabled) { color: var(--c-teal); background: var(--c-foam); }
+  &:disabled { opacity: 0.25; cursor: default; }
 }
 
 .q-edit {
