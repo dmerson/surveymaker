@@ -585,19 +585,23 @@ export class FormEditor implements OnInit {
     const newOrder = target.order;
     const oldOrder = q.order;
 
-    this.formService.updateQuestion(
-      this.form()!.formId, section.sectionId, q.questionId,
-      q.questionTypeId, q.text, newOrder, q.questionAttributes ?? '{}'
+    this.formService.reorderQuestion(
+      this.form()!.formId, section.sectionId, q.questionId, newOrder
     ).subscribe({
       next: () => {
         const updated = { ...this.form()! };
-        const sec = updated.sections.find(s => s.sectionId === section.sectionId)!;
-        sec.questions = sec.questions.map(x =>
-          x.questionId === q.questionId     ? { ...x, order: newOrder } :
-          x.questionId === target.questionId ? { ...x, order: oldOrder } : x
+        updated.sections = updated.sections.map(s =>
+          s.sectionId !== section.sectionId ? s : {
+            ...s,
+            questions: s.questions.map(x =>
+              x.questionId === q.questionId      ? { ...x, order: newOrder } :
+              x.questionId === target.questionId ? { ...x, order: oldOrder } : x
+            )
+          }
         );
-        this.form.set({ ...updated });
-      }
+        this.form.set(updated);
+      },
+      error: () => console.error('Failed to reorder question')
     });
   }
 

@@ -85,6 +85,13 @@ export class FormService {
     return this.http.delete<void>(`/api/forms/${formId}/sections/${sectionId}`);
   }
 
+  reorderQuestion(formId: string, sectionId: number, questionId: number, order: number): Observable<void> {
+    return this.http.patch<void>(
+      `/api/forms/${formId}/sections/${sectionId}/questions/${questionId}`,
+      { order }
+    );
+  }
+
   addQuestion(
     formId: string,
     sectionId: number,

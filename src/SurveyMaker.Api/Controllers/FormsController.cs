@@ -507,6 +507,36 @@ public class FormsController(SurveyMakerDbContext db) : ControllerBase
         return Ok();
     }
 
+    // ── Reorder question (swap with the question currently at target order) ──
+
+    [HttpPatch("{formId:guid}/sections/{sectionId:int}/questions/{questionId:int}")]
+    public async Task<IActionResult> ReorderQuestion(
+        Guid formId, int sectionId, int questionId, [FromBody] ReorderQuestionRequest request)
+    {
+        var question = await db.Questions
+            .Include(q => q.Section)
+                .ThenInclude(s => s.Form)
+            .FirstOrDefaultAsync(q => q.QuestionId == questionId
+                                   && q.SectionId == sectionId
+                                   && q.Section.FormId == formId
+                                   && q.Section.Form.FormCreatorEmail == UserEmail);
+        if (question is null) return NotFound();
+
+        int newOrder = request.Order;
+        if (newOrder <= 0 || newOrder == question.Order) return NoContent();
+
+        var conflicting = await db.Questions
+            .FirstOrDefaultAsync(q => q.SectionId == sectionId
+                                   && q.Order == newOrder
+                                   && q.QuestionId != questionId);
+        if (conflicting is not null)
+            conflicting.Order = question.Order;
+        question.Order = newOrder;
+
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
     // ── Remove question ───────────────────────────────────────────────────────
 
     [HttpDelete("{formId:guid}/sections/{sectionId:int}/questions/{questionId:int}")]
@@ -533,5 +563,6 @@ public record CreateFormRequest(string FormName, string? Description, int Securi
 public record AddQuestionRequest(int QuestionTypeId, string Text, int Order, string? QuestionAttributes);
 public record AddSectionRequest(string? SectionName, int Order);
 public record RenameSectionRequest(string? SectionName, int? Order, bool? IsMatrix);
+public record ReorderQuestionRequest(int Order);
 public record PatchFormRequest(string? FormName, string? Description, bool RandomizeOrder, int? Quota, bool Published, int SecurityTypeId = 1);
 public record AddAllowedUserRequest(string UserEmail);
