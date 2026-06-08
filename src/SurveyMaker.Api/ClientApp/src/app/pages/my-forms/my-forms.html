@@ -34,8 +34,37 @@
     </div>
 
   } @else {
+    <div class="filter-bar">
+      <div class="filter-dates">
+        <label class="filter-label">
+          From
+          <input type="date" class="filter-input" [value]="filterFrom()"
+                 (change)="filterFrom.set($any($event.target).value)" />
+        </label>
+        <label class="filter-label">
+          To
+          <input type="date" class="filter-input" [value]="filterTo()"
+                 (change)="filterTo.set($any($event.target).value)" />
+        </label>
+      </div>
+      <div class="filter-status">
+        <button class="btn btn-sm filter-btn" [class.filter-btn--active]="filterStatus() === 'all'"
+                (click)="filterStatus.set('all')">All</button>
+        <button class="btn btn-sm filter-btn" [class.filter-btn--active]="filterStatus() === 'draft'"
+                (click)="filterStatus.set('draft')">Draft</button>
+        <button class="btn btn-sm filter-btn" [class.filter-btn--active]="filterStatus() === 'published'"
+                (click)="filterStatus.set('published')">Published</button>
+      </div>
+    </div>
+
+    @if (filteredForms().length === 0) {
+      <div class="no-results">
+        No forms match your filters.
+        <button class="btn-link" (click)="clearFilters()">Clear filters</button>
+      </div>
+    } @else {
     <div class="forms-grid">
-      @for (form of forms(); track form.formId) {
+      @for (form of filteredForms(); track form.formId) {
         <div class="form-card">
           <div class="form-card-top">
             <h3 class="form-title">{{ form.formName }}</h3>
@@ -94,5 +123,6 @@
         </div>
       }
     </div>
+    }
   }
 </div>

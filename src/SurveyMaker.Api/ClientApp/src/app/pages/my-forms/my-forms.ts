@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, signal, computed, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { SlicePipe } from '@angular/common';
 import { FormService } from '../../services/form.service';
@@ -11,10 +11,28 @@ import { FormSummary } from '../../models/form.model';
   styleUrl: './my-forms.scss'
 })
 export class MyForms implements OnInit {
-  forms       = signal<FormSummary[]>([]);
-  loading     = signal(true);
-  error       = signal('');
-  copiedId    = signal<string | null>(null);
+  forms        = signal<FormSummary[]>([]);
+  loading      = signal(true);
+  error        = signal('');
+  copiedId     = signal<string | null>(null);
+
+  filterFrom   = signal('');
+  filterTo     = signal('');
+  filterStatus = signal<'all' | 'draft' | 'published'>('all');
+
+  filteredForms = computed(() => {
+    const from   = this.filterFrom();
+    const to     = this.filterTo();
+    const status = this.filterStatus();
+    return this.forms().filter(f => {
+      const date = f.createdAt.slice(0, 10);
+      if (from && date < from) return false;
+      if (to   && date > to)   return false;
+      if (status === 'draft'     &&  f.published) return false;
+      if (status === 'published' && !f.published) return false;
+      return true;
+    });
+  });
 
   private readonly formService = inject(FormService);
 
@@ -31,6 +49,12 @@ export class MyForms implements OnInit {
 
   securityClass(id: number): string {
     return id === 1 ? 'badge-public' : id === 2 ? 'badge-private' : 'badge-url';
+  }
+
+  clearFilters(): void {
+    this.filterFrom.set('');
+    this.filterTo.set('');
+    this.filterStatus.set('all');
   }
 
   copyLink(formId: string): void {
