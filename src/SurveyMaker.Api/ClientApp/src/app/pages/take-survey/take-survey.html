@@ -356,22 +356,24 @@
 
                 <!-- 19 · Yes/No -->
                 @case (T.YES_NO) {
+                  @if (q.attrs.yesNoStyle === 'checkbox') {
+                    <label class="sv-yesno-single">
+                      <input type="checkbox"
+                        [checked]="strAnswer(q.questionId) === 'Yes'"
+                        (change)="setAnswer(q.questionId, $any($event.target).checked ? 'Yes' : 'No'); onBlur(q)" />
+                    </label>
+                  } @else {
                   <div class="sv-yesno">
                     @for (opt of ['Yes', 'No']; track opt) {
                       <label class="sv-yesno-opt">
-                        @if (q.attrs.yesNoStyle === 'checkbox') {
-                          <input type="checkbox"
-                            [checked]="strAnswer(q.questionId) === opt"
-                            (change)="setAnswer(q.questionId, strAnswer(q.questionId) === opt ? '' : opt); onBlur(q)" />
-                        } @else {
-                          <input type="radio" [name]="'q' + q.questionId" [value]="opt"
-                            [checked]="strAnswer(q.questionId) === opt"
-                            (change)="setAnswer(q.questionId, opt); onBlur(q)" />
-                        }
+                        <input type="radio" [name]="'q' + q.questionId" [value]="opt"
+                          [checked]="strAnswer(q.questionId) === opt"
+                          (change)="setAnswer(q.questionId, opt); onBlur(q)" />
                         <span>{{ opt }}</span>
                       </label>
                     }
                   </div>
+                  }
                 }
 
                 <!-- 20 · Checklist With Values -->

@@ -200,6 +200,12 @@
   gap: 1rem;
 }
 
+.sv-yesno-single {
+  display: flex;
+  align-items: center;
+  input[type="checkbox"] { width: 1.25rem; height: 1.25rem; cursor: pointer; }
+}
+
 .sv-yesno-opt {
   display: flex;
   align-items: center;
