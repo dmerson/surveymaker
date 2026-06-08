@@ -10,6 +10,7 @@ export interface SurveyDetail {
   formId: string;
   formName: string;
   description?: string;
+  randomizeOrder?: boolean;
   sections: SurveySectionDetail[];
 }
 
@@ -133,6 +134,7 @@ export interface LoadedSurvey {
   formId: string;
   formName: string;
   description?: string;
+  randomizeOrder?: boolean;
   sections: LoadedSection[];
   allQuestions: LoadedQuestion[];
 }

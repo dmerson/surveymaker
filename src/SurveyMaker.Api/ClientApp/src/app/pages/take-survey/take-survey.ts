@@ -119,6 +119,67 @@ export class TakeSurvey implements OnInit {
     return { hiddenIds, extraRequiredIds, overrideUnreqIds };
   });
 
+  renderedSections = computed((): LoadedSection[] => {
+    const survey = this.loadedSurvey();
+    if (!survey) return [];
+    if (!survey.randomizeOrder) return survey.sections;
+
+    // Collect all conditional logic rules from the whole form
+    const allRules: ConditionalLogicConfig[] = [];
+    for (const sec of survey.sections) {
+      for (const q of sec.questions) {
+        if (q.questionTypeId === 26 && q.attrs.conditionalLogic) {
+          allRules.push(q.attrs.conditionalLogic);
+        }
+      }
+    }
+
+    return survey.sections.map(section => {
+      const sorted = [...section.questions].sort((a, b) => a.order - b.order);
+
+      // Instructions stay anchored; type-26 excluded from rendered list
+      const instructions = sorted.filter(q => q.questionTypeId === 0);
+      const shufflable   = sorted.filter(q => q.questionTypeId !== 0 && q.questionTypeId !== 26);
+
+      // Fisher-Yates shuffle
+      const shuffled = [...shufflable];
+      for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+      }
+
+      // Enforce source-before-target for same-section conditional logic
+      for (const rule of allRules) {
+        const srcIdx = shuffled.findIndex(q => q.questionId === rule.condition.questionId);
+        if (srcIdx === -1) continue;
+        const targetIndices = rule.thenActions
+          .map(a => shuffled.findIndex(q => q.questionId === a.questionId))
+          .filter(i => i !== -1);
+        if (targetIndices.length === 0) continue;
+        const earliestTarget = Math.min(...targetIndices);
+        if (srcIdx > earliestTarget) {
+          const [src] = shuffled.splice(srcIdx, 1);
+          const newEarliest = Math.min(
+            ...rule.thenActions
+              .map(a => shuffled.findIndex(q => q.questionId === a.questionId))
+              .filter(i => i !== -1)
+          );
+          shuffled.splice(newEarliest, 0, src);
+        }
+      }
+
+      // Re-merge: Instructions fill their original slot positions, shuffled questions fill the rest
+      const withoutCL = sorted.filter(q => q.questionTypeId !== 26);
+      let instrIdx = 0;
+      let shufIdx  = 0;
+      const result: LoadedQuestion[] = withoutCL.map(q =>
+        q.questionTypeId === 0 ? instructions[instrIdx++] : shuffled[shufIdx++]
+      );
+
+      return { ...section, questions: result };
+    });
+  });
+
   hasFileQuestions = computed(() => {
     const s = this.loadedSurvey();
     if (!s) return false;

@@ -47,7 +47,7 @@
 
     <!-- Questions -->
     <div class="sv-questions">
-      @for (section of survey.sections; track section.sectionId) {
+      @for (section of renderedSections(); track section.sectionId) {
 
         @if (section.sectionName) {
           <h2 class="sv-section-title">{{ section.sectionName }}</h2>

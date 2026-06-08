@@ -116,10 +116,11 @@ public class SurveysController(SurveyMakerDbContext db) : ControllerBase
 
         return Ok(new
         {
-            formId      = form.FormId,
-            formName    = form.FormName,
-            description = form.Description,
-            sections    = form.Sections.Select(s => new
+            formId         = form.FormId,
+            formName       = form.FormName,
+            description    = form.Description,
+            randomizeOrder = form.RandomizeOrder,
+            sections       = form.Sections.Select(s => new
             {
                 sectionId   = s.SectionId,
                 sectionName = s.SectionName,
