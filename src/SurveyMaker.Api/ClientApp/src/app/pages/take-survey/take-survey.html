@@ -53,6 +53,70 @@
           <h2 class="sv-section-title">{{ section.sectionName }}</h2>
         }
 
+        @if (matrixCols(section); as cols) {
+
+          <!-- ── Matrix layout ─────────────────────────────────────── -->
+          <div class="sv-matrix-card">
+            <table class="sv-matrix-table">
+              <thead>
+                @if (isLikertSection(section)) {
+                  <tr class="sv-matrix-labels-row">
+                    <td></td>
+                    <td [attr.colspan]="cols.length" class="sv-matrix-labels-cell">
+                      <span class="sv-matrix-label">Strongly Disagree</span>
+                      <span class="sv-matrix-label">Strongly Agree</span>
+                    </td>
+                  </tr>
+                }
+                <tr>
+                  <th class="sv-matrix-q-head"></th>
+                  @for (col of cols; track col.value) {
+                    <th class="sv-matrix-col-head">{{ col.label }}</th>
+                  }
+                </tr>
+              </thead>
+              <tbody>
+                @for (q of section.questions; track q.questionId) {
+                  <tr class="sv-matrix-row" [class.sv-matrix-row-error]="!!errors()[q.questionId]">
+                    <td class="sv-matrix-q-cell">
+                      <span class="sv-q-num">{{ q.order }}.</span>
+                      {{ q.text }}
+                      @if (q.attrs.required) { <span class="sv-req">*</span> }
+                    </td>
+                    @for (col of cols; track col.value) {
+                      <td class="sv-matrix-input-cell">
+                        @if (col.isCheckbox) {
+                          <input type="checkbox"
+                            [checked]="isChecked(q.questionId, col.value)"
+                            (change)="toggleCheckbox(q.questionId, col.value, $any($event.target).checked); onBlur(q)" />
+                        } @else {
+                          <input type="radio" [name]="'q' + q.questionId" [value]="col.value"
+                            [checked]="strAnswer(q.questionId) === col.value"
+                            (change)="setAnswer(q.questionId, col.value); onBlur(q)" />
+                        }
+                      </td>
+                    }
+                  </tr>
+                  @if (errors()[q.questionId]) {
+                    <tr>
+                      <td [attr.colspan]="cols.length + 1" class="sv-matrix-err-cell">
+                        <div class="sv-field-error">
+                          <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
+                          </svg>
+                          {{ errors()[q.questionId] }}
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                }
+              </tbody>
+            </table>
+          </div>
+
+        } @else {
+
+        <!-- ── Individual question layout ────────────────────────── -->
         @for (q of section.questions; track q.questionId) {
           <div class="sv-question" [class.has-error]="!!errors()[q.questionId]">
 
@@ -415,6 +479,9 @@
             }
           </div>
         }
+
+        } <!-- end @else (individual layout) -->
+
       }
     </div>
 

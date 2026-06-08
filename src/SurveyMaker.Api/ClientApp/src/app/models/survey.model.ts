@@ -17,6 +17,7 @@ export interface SurveySectionDetail {
   sectionId: number;
   sectionName: string;
   order: number;
+  isMatrix: boolean;
   questions: SurveyQuestion[];
 }
 
@@ -101,6 +102,7 @@ export interface LoadedSection {
   sectionId: number;
   sectionName: string;
   order: number;
+  isMatrix: boolean;
   questions: LoadedQuestion[];
 }
 

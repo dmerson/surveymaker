@@ -453,6 +453,80 @@
   width: 100%;
 }
 
+// ── Matrix ────────────────────────────────────────────────────────────
+.sv-matrix-card {
+  background: var(--c-white);
+  border: 1px solid var(--c-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-card);
+  overflow-x: auto;
+}
+
+.sv-matrix-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.9rem;
+}
+
+.sv-matrix-labels-row td { padding: 0.6rem 0.75rem 0; }
+
+.sv-matrix-labels-cell {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--c-text-light);
+  padding-right: 0;
+}
+
+.sv-matrix-label { font-style: italic; }
+
+.sv-matrix-q-head {
+  min-width: 180px;
+  padding: 0.6rem 1rem;
+}
+
+.sv-matrix-col-head {
+  text-align: center;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--c-text-mid);
+  border-bottom: 2px solid var(--c-border);
+  min-width: 52px;
+}
+
+.sv-matrix-row {
+  &:nth-child(even) { background: var(--c-surface); }
+  &.sv-matrix-row-error { background: #fff5f5; }
+}
+
+.sv-matrix-q-cell {
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  color: var(--c-text);
+  border-bottom: 1px solid var(--c-border);
+  vertical-align: middle;
+}
+
+.sv-matrix-input-cell {
+  text-align: center;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--c-border);
+  padding: 0.5rem 0.25rem;
+
+  input {
+    accent-color: var(--c-teal);
+    width: 1.1rem;
+    height: 1.1rem;
+    cursor: pointer;
+  }
+}
+
+.sv-matrix-err-cell {
+  padding: 0 1rem 0.5rem;
+  .sv-field-error { margin-top: 0; }
+}
+
 // ── Preview mode banner ───────────────────────────────────────────────
 .sv-preview-banner {
   display: flex;

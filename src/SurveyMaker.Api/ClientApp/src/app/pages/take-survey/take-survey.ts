@@ -9,6 +9,8 @@ import {
 import { evaluateFormula } from '../../utils/formula-evaluator';
 import { SurveyChart } from '../../components/survey-chart/survey-chart';
 
+interface MatrixCol { label: string; value: string; isCheckbox: boolean; }
+
 // Question type IDs
 const T = {
   TEXT: 1, LONG_TEXT: 2, NUMBER: 3,
@@ -215,6 +217,38 @@ export class TakeSurvey implements OnInit {
 
   npsItems(): number[] {
     return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  }
+
+  // ── Matrix helpers ────────────────────────────────────────────────────────
+
+  matrixCols(section: LoadedSection): MatrixCol[] | null {
+    if (!section.isMatrix || section.questions.length === 0) return null;
+    const first = section.questions[0];
+    switch (first.questionTypeId) {
+      case T.LIKERT: {
+        const len = first.attrs.scale ?? 5;
+        return Array.from({ length: len }, (_, i) => {
+          const v = String(i + 1);
+          return { label: v, value: v, isCheckbox: false };
+        });
+      }
+      case T.RADIO:
+      case T.RADIO_VAL:
+        return (this.strOpts(first) as string[]).map(o => ({ label: o, value: o, isCheckbox: false }));
+      case T.CHECKBOX:
+        return (this.strOpts(first) as string[]).map(o => ({ label: o, value: o, isCheckbox: true }));
+      case T.YES_NO:
+        return [
+          { label: 'Yes', value: 'Yes', isCheckbox: false },
+          { label: 'No',  value: 'No',  isCheckbox: false }
+        ];
+      default:
+        return null;
+    }
+  }
+
+  isLikertSection(section: LoadedSection): boolean {
+    return section.questions[0]?.questionTypeId === T.LIKERT;
   }
 
   rangeMin(q: LoadedQuestion): number { return q.attrs.min ?? 0; }

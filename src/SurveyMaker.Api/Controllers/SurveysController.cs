@@ -124,6 +124,7 @@ public class SurveysController(SurveyMakerDbContext db) : ControllerBase
                 sectionId   = s.SectionId,
                 sectionName = s.SectionName,
                 order       = s.Order,
+                isMatrix    = s.IsMatrix,
                 questions   = s.Questions.Select(q => new
                 {
                     questionId         = q.QuestionId,

@@ -113,6 +113,14 @@
   background: var(--c-foam, #f0fbff);
 }
 
+.col-matrix-group {
+  text-align: center !important;
+  background: var(--c-foam, #f0fbff) !important;
+  color: var(--c-teal) !important;
+  border-bottom: 1px solid var(--c-border) !important;
+  font-style: italic;
+}
+
 .grid-pdf-link {
   display: inline-block;
   font-size: 0.78rem;

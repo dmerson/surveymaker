@@ -23,13 +23,38 @@
     <div class="grid-scroll">
       <table class="grid-table">
         <thead>
-          <tr>
-            <th class="col-respondent">Respondent</th>
-            <th class="col-date">Date</th>
-            @for (q of questions(); track q.questionId) {
-              <th [title]="q.text">{{ q.text | slice:0:35 }}{{ q.text.length > 35 ? '…' : '' }}</th>
-            }
-          </tr>
+          @if (hasMatrixSections()) {
+            <tr>
+              <th rowspan="2" class="col-respondent">Respondent</th>
+              <th rowspan="2" class="col-date">Date</th>
+              @for (group of headerGroups(); track $index) {
+                @if (group.isMatrix) {
+                  <th [attr.colspan]="group.questions.length" class="col-matrix-group">{{ group.sectionName }}</th>
+                } @else {
+                  @for (q of group.questions; track q.questionId) {
+                    <th rowspan="2" [title]="q.text">{{ q.text | slice:0:35 }}{{ q.text.length > 35 ? '…' : '' }}</th>
+                  }
+                }
+              }
+            </tr>
+            <tr>
+              @for (group of headerGroups(); track $index) {
+                @if (group.isMatrix) {
+                  @for (q of group.questions; track q.questionId) {
+                    <th [title]="q.text">{{ q.text | slice:0:35 }}{{ q.text.length > 35 ? '…' : '' }}</th>
+                  }
+                }
+              }
+            </tr>
+          } @else {
+            <tr>
+              <th class="col-respondent">Respondent</th>
+              <th class="col-date">Date</th>
+              @for (q of questions(); track q.questionId) {
+                <th [title]="q.text">{{ q.text | slice:0:35 }}{{ q.text.length > 35 ? '…' : '' }}</th>
+              }
+            </tr>
+          }
         </thead>
         <tbody>
           @for (row of rows(); track row.submissionId) {

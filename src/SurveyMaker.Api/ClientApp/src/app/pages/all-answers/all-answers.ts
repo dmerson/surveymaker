@@ -1,8 +1,15 @@
-import { Component, OnInit, signal, inject } from '@angular/core';
+import { Component, OnInit, computed, signal, inject } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { SlicePipe } from '@angular/common';
 import { FormService } from '../../services/form.service';
 import { AnswerGridQuestion, AnswerGridRow } from '../../models/form.model';
+
+interface HeaderGroup {
+  isMatrix: boolean;
+  sectionId: number;
+  sectionName: string;
+  questions: AnswerGridQuestion[];
+}
 
 @Component({
   selector: 'app-all-answers',
@@ -20,6 +27,21 @@ export class AllAnswers implements OnInit {
   rows      = signal<AnswerGridRow[]>([]);
   loading   = signal(true);
   error     = signal('');
+
+  headerGroups = computed((): HeaderGroup[] => {
+    const groups: HeaderGroup[] = [];
+    for (const q of this.questions()) {
+      const last = groups[groups.length - 1];
+      if (last && last.isMatrix && q.isMatrix && q.sectionId === last.sectionId) {
+        last.questions.push(q);
+      } else {
+        groups.push({ isMatrix: q.isMatrix, sectionId: q.sectionId, sectionName: q.sectionName, questions: [q] });
+      }
+    }
+    return groups;
+  });
+
+  hasMatrixSections = computed(() => this.headerGroups().some(g => g.isMatrix));
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id')!;

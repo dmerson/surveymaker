@@ -79,6 +79,9 @@ export interface AnswerGridQuestion {
   questionId: number;
   text: string;
   questionTypeId: number;
+  sectionId: number;
+  sectionName: string;
+  isMatrix: boolean;
 }
 
 export interface AnswerGridRow {
