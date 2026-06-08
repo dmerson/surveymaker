@@ -378,6 +378,46 @@ public class FormsController(SurveyMakerDbContext db) : ControllerBase
         });
     }
 
+    // ── Rename section ────────────────────────────────────────────────────────
+
+    [HttpPatch("{formId:guid}/sections/{sectionId:int}")]
+    public async Task<IActionResult> RenameSection(
+        Guid formId, int sectionId, [FromBody] RenameSectionRequest request)
+    {
+        var section = await db.Sections
+            .FirstOrDefaultAsync(s => s.SectionId == sectionId
+                                   && s.FormId == formId
+                                   && s.Form.FormCreatorEmail == UserEmail);
+        if (section is null) return NotFound();
+
+        section.SectionName = request.SectionName?.Trim() ?? string.Empty;
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
+    // ── Delete section ────────────────────────────────────────────────────────
+
+    [HttpDelete("{formId:guid}/sections/{sectionId:int}")]
+    public async Task<IActionResult> DeleteSection(Guid formId, int sectionId)
+    {
+        var sectionCount = await db.Sections
+            .CountAsync(s => s.FormId == formId && s.Form.FormCreatorEmail == UserEmail);
+        if (sectionCount <= 1)
+            return BadRequest(new { error = "Cannot delete the only section." });
+
+        var section = await db.Sections
+            .Include(s => s.Questions)
+                .ThenInclude(q => q.Answers)
+            .FirstOrDefaultAsync(s => s.SectionId == sectionId
+                                   && s.FormId == formId
+                                   && s.Form.FormCreatorEmail == UserEmail);
+        if (section is null) return NotFound();
+
+        db.Sections.Remove(section);
+        await db.SaveChangesAsync();
+        return NoContent();
+    }
+
     // ── Add question ──────────────────────────────────────────────────────────
 
     [HttpPost("{formId:guid}/sections/{sectionId:int}/questions")]
@@ -465,5 +505,6 @@ public class FormsController(SurveyMakerDbContext db) : ControllerBase
 public record CreateFormRequest(string FormName, string? Description, int SecurityTypeId = 1);
 public record AddQuestionRequest(int QuestionTypeId, string Text, int Order, string? QuestionAttributes);
 public record AddSectionRequest(string? SectionName, int Order);
+public record RenameSectionRequest(string? SectionName);
 public record PatchFormRequest(string? FormName, string? Description, bool RandomizeOrder, int? Quota, bool Published, int SecurityTypeId = 1);
 public record AddAllowedUserRequest(string UserEmail);

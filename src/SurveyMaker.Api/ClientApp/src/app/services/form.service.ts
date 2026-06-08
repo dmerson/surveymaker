@@ -77,6 +77,14 @@ export class FormService {
     return this.http.post<SectionDetail>(`/api/forms/${formId}/sections`, { sectionName, order });
   }
 
+  updateSection(formId: string, sectionId: number, sectionName: string): Observable<void> {
+    return this.http.patch<void>(`/api/forms/${formId}/sections/${sectionId}`, { sectionName });
+  }
+
+  removeSection(formId: string, sectionId: number): Observable<void> {
+    return this.http.delete<void>(`/api/forms/${formId}/sections/${sectionId}`);
+  }
+
   addQuestion(
     formId: string,
     sectionId: number,

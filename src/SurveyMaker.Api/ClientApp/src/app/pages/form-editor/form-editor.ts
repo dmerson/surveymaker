@@ -61,6 +61,14 @@ export class FormEditor implements OnInit {
   asSaving = signal(false);
   asError  = signal('');
 
+  // ── Edit Section state ────────────────────────────────────────────────────
+  esSectionId = signal<number | null>(null);  // null = not editing
+  esName      = signal('');
+  esSaving    = signal(false);
+  esError     = signal('');
+  // Delete confirm
+  deleteSectionId = signal<number | null>(null);
+
   // ── Form settings (editable) ──────────────────────────────────────────────
   fsFormName       = signal('');
   fsDescription    = signal('');
@@ -478,6 +486,69 @@ export class FormEditor implements OnInit {
           this.asSaving.set(false);
         }
       });
+  }
+
+  // ── Edit / Delete Section ─────────────────────────────────────────────────
+
+  startEditSection(section: SectionDetail): void {
+    this.esSectionId.set(section.sectionId);
+    this.esName.set(section.sectionName);
+    this.esError.set('');
+  }
+
+  cancelEditSection(): void {
+    this.esSectionId.set(null);
+    this.esError.set('');
+  }
+
+  saveEditSection(): void {
+    if (this.esSaving()) return;
+    this.esSaving.set(true);
+    this.esError.set('');
+    const sectionId = this.esSectionId()!;
+    const name = this.esName().trim();
+
+    this.formService.updateSection(this.form()!.formId, sectionId, name).subscribe({
+      next: () => {
+        const updated = { ...this.form()! };
+        const sec = updated.sections.find(s => s.sectionId === sectionId)!;
+        sec.sectionName = name;
+        this.form.set(updated);
+        this.esSectionId.set(null);
+        this.esSaving.set(false);
+      },
+      error: () => {
+        this.esError.set('Failed to rename section.');
+        this.esSaving.set(false);
+      }
+    });
+  }
+
+  confirmDeleteSection(sectionId: number): void {
+    this.deleteSectionId.set(sectionId);
+  }
+
+  cancelDeleteSection(): void {
+    this.deleteSectionId.set(null);
+  }
+
+  deleteSection(sectionId: number): void {
+    this.formService.removeSection(this.form()!.formId, sectionId).subscribe({
+      next: () => {
+        const updated = { ...this.form()! };
+        updated.sections = updated.sections.filter(s => s.sectionId !== sectionId);
+        this.form.set(updated);
+        this.deleteSectionId.set(null);
+        // If we were adding/editing in this section, switch to first remaining
+        if (this.aqSectionId() === sectionId) {
+          const first = updated.sections[0];
+          if (first) this.openAddPanel(first);
+          else { this.aqSectionId.set(null); this.resetAqFields(); }
+        }
+        if (this.esSectionId() === sectionId) this.esSectionId.set(null);
+      },
+      error: () => { this.deleteSectionId.set(null); }
+    });
   }
 
   // ── Form Settings ─────────────────────────────────────────────────────────
