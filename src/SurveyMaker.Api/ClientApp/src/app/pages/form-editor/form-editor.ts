@@ -67,6 +67,12 @@ export class FormEditor implements OnInit {
   aqSaving     = signal(false);
   aqError      = signal('');
 
+  // ── Question Help state ───────────────────────────────────────────────────
+  helpQuestionId = signal<number | null>(null);
+  helpHtml       = signal('');
+  helpSaving     = signal(false);
+  helpError      = signal('');
+
   // ── Add Section state ─────────────────────────────────────────────────────
   asOpen   = signal(false);
   asName   = signal('');
@@ -267,6 +273,51 @@ export class FormEditor implements OnInit {
   cancelEdit(): void {
     this.aqEditingQuestionId.set(null);
     this.resetAqFields();
+  }
+
+  openHelp(q: QuestionDetail): void {
+    if (this.helpQuestionId() === q.questionId) { this.closeHelp(); return; }
+    let existing: Record<string, unknown> = {};
+    try { existing = JSON.parse(q.questionAttributes ?? '{}') as Record<string, unknown>; } catch {}
+    this.helpHtml.set((existing['help'] as string) ?? '');
+    this.helpError.set('');
+    this.helpQuestionId.set(q.questionId);
+  }
+
+  closeHelp(): void {
+    this.helpQuestionId.set(null);
+    this.helpHtml.set('');
+    this.helpError.set('');
+  }
+
+  saveHelp(section: SectionDetail, q: QuestionDetail): void {
+    this.helpSaving.set(true);
+    this.helpError.set('');
+    let existing: Record<string, unknown> = {};
+    try { existing = JSON.parse(q.questionAttributes ?? '{}') as Record<string, unknown>; } catch {}
+    const helpVal = this.helpHtml().trim();
+    if (helpVal) { existing['help'] = helpVal; } else { delete existing['help']; }
+    const attrsJson = JSON.stringify(existing);
+
+    this.formService.updateQuestion(
+      this.form()!.formId, section.sectionId, q.questionId,
+      q.questionTypeId, q.text, q.order, attrsJson
+    ).subscribe({
+      next: () => {
+        const updated = { ...this.form()! };
+        const sec = updated.sections.find(s => s.sectionId === section.sectionId)!;
+        sec.questions = sec.questions.map(eq =>
+          eq.questionId === q.questionId ? { ...eq, questionAttributes: attrsJson } : eq
+        );
+        this.form.set(updated);
+        this.helpSaving.set(false);
+        this.closeHelp();
+      },
+      error: () => {
+        this.helpError.set('Failed to save help text.');
+        this.helpSaving.set(false);
+      }
+    });
   }
 
   private loadAttributes(attrsJson: string | undefined, typeId: number): void {

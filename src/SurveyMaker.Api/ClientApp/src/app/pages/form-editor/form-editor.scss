@@ -360,6 +360,46 @@
   &:disabled { opacity: 0.35; cursor: not-allowed; }
 }
 
+.q-help {
+  background: none; border: none; cursor: pointer; color: var(--c-text-light);
+  padding: 0.25rem; border-radius: 4px; display: flex;
+  &:hover { color: var(--c-teal); background: var(--c-foam); }
+  &.q-help--active { color: var(--c-teal); background: var(--c-foam); }
+}
+
+// ── Inline Help panel ─────────────────────────────────────────────────
+.help-inline-panel {
+  border: 1px solid var(--c-teal);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  background: var(--c-white);
+  padding: 1rem 1.25rem 1.25rem;
+}
+
+.help-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.75rem;
+}
+
+.help-panel-title {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--c-deep);
+}
+
+.help-panel-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  color: var(--c-text-light);
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+  line-height: 1;
+  &:hover { color: var(--c-text); background: var(--c-surface); }
+}
+
 // ── Add Question panel ────────────────────────────────────────────────
 .aq-panel {
   border-top: 1px solid var(--c-border);

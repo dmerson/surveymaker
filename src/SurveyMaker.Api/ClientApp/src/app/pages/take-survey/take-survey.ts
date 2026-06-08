@@ -68,6 +68,9 @@ export class TakeSurvey implements OnInit {
   saving       = signal(false);
   saveMessage  = signal('');
 
+  // which question's help panel is open (null = none)
+  helpOpenId = signal<number | null>(null);
+
   hasFileQuestions = computed(() => {
     const s = this.loadedSurvey();
     if (!s) return false;
@@ -226,6 +229,14 @@ export class TakeSurvey implements OnInit {
 
   safeHtml(q: LoadedQuestion): SafeHtml {
     return this.sanitizer.bypassSecurityTrustHtml(q.attrs.html ?? '');
+  }
+
+  safeHelp(q: LoadedQuestion): SafeHtml {
+    return this.sanitizer.bypassSecurityTrustHtml(q.attrs.help ?? '');
+  }
+
+  toggleHelp(id: number): void {
+    this.helpOpenId.set(this.helpOpenId() === id ? null : id);
   }
 
   // ── Previous-answer placeholder resolution ───────────────────────────────

@@ -99,6 +99,39 @@
 
 .sv-req { color: #dc2626; font-weight: 700; font-size: 0.85rem; }
 
+.sv-help-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--c-text-light);
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 50%;
+  line-height: 1;
+  flex-shrink: 0;
+  &:hover { color: var(--c-teal); }
+  &.sv-help-btn--open { color: var(--c-teal); }
+}
+
+.sv-help-panel {
+  background: var(--c-foam);
+  border: 1px solid var(--c-teal);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.85rem;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: var(--c-text);
+
+  h1, h2, h3, h4 { color: var(--c-deep); font-weight: 700; margin: 0.4rem 0; }
+  p  { margin: 0.3rem 0; }
+  ul, ol { padding-left: 1.4rem; margin: 0.3rem 0; }
+  a  { color: var(--c-teal); }
+  strong { font-weight: 700; }
+  em { font-style: italic; }
+}
+
 // ── Input elements ────────────────────────────────────────────────────
 .sv-input {
   width: 100%;

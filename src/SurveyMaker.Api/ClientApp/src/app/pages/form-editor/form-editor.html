@@ -393,6 +393,13 @@
                       <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
                     </svg>
                   </button>
+                  <button class="q-help" title="Edit help text"
+                    [class.q-help--active]="helpQuestionId() === q.questionId"
+                    (click)="openHelp(q)">
+                    <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+                      <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 10a3 3 0 01-2 2.83V13a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                    </svg>
+                  </button>
                   <button class="q-edit" title="Edit question"
                     (click)="editQuestion(section, q)"
                     [disabled]="aqEditingQuestionId() !== null && aqEditingQuestionId() !== q.questionId">
@@ -420,6 +427,35 @@
                         [disabled]="aqSaving()"
                         (click)="saveQuestion()">
                         @if (aqSaving()) { Updating… } @else { Update Question }
+                      </button>
+                    </div>
+                  </div>
+                }
+
+                <!-- Inline help panel -->
+                @if (helpQuestionId() === q.questionId) {
+                  <div class="help-inline-panel">
+                    <div class="help-panel-header">
+                      <span class="help-panel-title">Help Text for "{{ q.text }}"</span>
+                      <button type="button" class="help-panel-close" (click)="closeHelp()">✕</button>
+                    </div>
+                    <quill-editor class="aq-quill-editor"
+                      [ngModel]="helpHtml()"
+                      (ngModelChange)="helpHtml.set($event)"
+                      [modules]="quillModules"
+                      placeholder="Enter help text shown to respondents…"
+                      theme="snow">
+                    </quill-editor>
+                    @if (helpError()) {
+                      <div class="aq-error">{{ helpError() }}</div>
+                    }
+                    <div class="aq-actions">
+                      <button class="btn btn-outline btn-sm"
+                        (click)="closeHelp()" [disabled]="helpSaving()">Cancel</button>
+                      <button class="btn btn-accent"
+                        [disabled]="helpSaving()"
+                        (click)="saveHelp(section, q)">
+                        @if (helpSaving()) { Saving… } @else { Save Help }
                       </button>
                     </div>
                   </div>

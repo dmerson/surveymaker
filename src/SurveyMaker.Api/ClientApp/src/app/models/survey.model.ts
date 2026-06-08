@@ -42,6 +42,7 @@ export interface ParsedAttrs {
   graphType?: GraphType;
   sourceQuestionIds?: number[];
   html?: string;
+  help?: string;
 }
 
 export type FormulaToken =

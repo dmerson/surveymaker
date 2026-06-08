@@ -129,7 +129,21 @@
               <span class="sv-q-num">{{ q.order }}.</span>
               <span class="sv-q-text">{{ resolveText(q) }}</span>
               @if (q.attrs.required) { <span class="sv-req">*</span> }
+              @if (q.attrs.help) {
+                <button type="button" class="sv-help-btn"
+                  [class.sv-help-btn--open]="helpOpenId() === q.questionId"
+                  (click)="toggleHelp(q.questionId)"
+                  title="Show help">
+                  <svg viewBox="0 0 20 20" fill="currentColor" width="15" height="15">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 10a3 3 0 01-2 2.83V13a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd"/>
+                  </svg>
+                </button>
+              }
             </div>
+
+            @if (q.attrs.help && helpOpenId() === q.questionId) {
+              <div class="sv-help-panel" [innerHTML]="safeHelp(q)"></div>
+            }
 
             <div class="sv-q-input">
 
