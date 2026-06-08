@@ -44,6 +44,26 @@ export interface ParsedAttrs {
   html?: string;
   help?: string;
   yesNoStyle?: 'radio' | 'checkbox';
+  conditionalLogic?: ConditionalLogicConfig;
+}
+
+export type ConditionOperator = 'eq' | 'neq' | 'gt' | 'lt' | 'gte' | 'lte';
+export type ThenActionType = 'show' | 'hide' | 'require';
+
+export interface ConditionRule {
+  questionId: number;
+  operator: ConditionOperator;
+  value: string;
+}
+
+export interface ThenAction {
+  questionId: number;
+  action: ThenActionType;
+}
+
+export interface ConditionalLogicConfig {
+  condition: ConditionRule;
+  thenActions: ThenAction[];
 }
 
 export type FormulaToken =

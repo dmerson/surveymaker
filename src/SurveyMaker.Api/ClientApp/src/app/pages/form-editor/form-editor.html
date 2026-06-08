@@ -261,6 +261,18 @@
           </div>
         }
 
+        @if (typeFlags().isConditionalLogic) {
+          <div class="aq-field">
+            <label class="aq-label">Logic Rule</label>
+            <div class="formula-preview-text">{{ condLogicPreview() }}</div>
+            <button type="button" class="btn btn-outline btn-sm"
+              style="margin-top:0.4rem"
+              (click)="openCondLogicWizard()">
+              {{ aqCondLogic() ? 'Edit Rule' : 'Build Rule' }}
+            </button>
+          </div>
+        }
+
         @if (typeFlags().isFormula) {
           <div class="aq-field">
             <label class="aq-label">Formula</label>
@@ -585,5 +597,15 @@
       (saved)="onGraphSaved($event)"
       (cancelled)="onGraphWizardCancelled()">
     </app-graph-wizard>
+  }
+
+  <!-- ── Conditional Logic Wizard ──────────────────────────────── -->
+  @if (showCondLogicWizard()) {
+    <app-conditional-logic-wizard
+      [questions]="allFormQuestions()"
+      [initialConfig]="aqCondLogic()"
+      (saved)="onCondLogicSaved($event)"
+      (cancelled)="onCondLogicCancelled()">
+    </app-conditional-logic-wizard>
   }
 }

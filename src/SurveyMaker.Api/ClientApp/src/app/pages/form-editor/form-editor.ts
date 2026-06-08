@@ -5,13 +5,14 @@ import { FormsModule } from '@angular/forms';
 import { QuillEditorComponent } from 'ngx-quill';
 import { FormService } from '../../services/form.service';
 import { FormDetail, QuestionDetail, QuestionType, SectionDetail } from '../../models/form.model';
-import { FormulaToken, GraphType } from '../../models/survey.model';
+import { ConditionalLogicConfig, FormulaToken, GraphType } from '../../models/survey.model';
 import { FormulaWizard } from '../formula-wizard/formula-wizard';
 import { GraphWizard } from '../graph-wizard/graph-wizard';
+import { ConditionalLogicWizard } from '../conditional-logic-wizard/conditional-logic-wizard';
 
 @Component({
   selector: 'app-form-editor',
-  imports: [FormsModule, RouterLink, NgTemplateOutlet, FormulaWizard, GraphWizard, QuillEditorComponent],
+  imports: [FormsModule, RouterLink, NgTemplateOutlet, FormulaWizard, GraphWizard, QuillEditorComponent, ConditionalLogicWizard],
   templateUrl: './form-editor.html',
   styleUrl: './form-editor.scss'
 })
@@ -65,6 +66,9 @@ export class FormEditor implements OnInit {
   aqGraphType      = signal<GraphType>('bar');
   aqGraphSourceIds = signal<number[]>([]);
   showGraphWizard  = signal(false);
+  // conditional logic type
+  aqCondLogic          = signal<ConditionalLogicConfig | null>(null);
+  showCondLogicWizard  = signal(false);
   // status
   aqSaving     = signal(false);
   aqError      = signal('');
@@ -138,9 +142,10 @@ export class FormEditor implements OnInit {
       hasOptions:     [4, 5, 6].includes(id),
       hasScored:      [20, 21, 22].includes(id),
       hasScale:       [13].includes(id),
-      isYesNo:        id === 19,
-      isFormula:      id === 24,
-      isGraph:        id === 25,
+      isYesNo:             id === 19,
+      isFormula:           id === 24,
+      isGraph:             id === 25,
+      isConditionalLogic:  id === 26,
     };
   });
 
@@ -149,6 +154,10 @@ export class FormEditor implements OnInit {
     if (this.fsSecurityTypeId() === 2) return types;
     return types.filter(t => t.questionTypeId !== 10 && t.questionTypeId !== 11);
   });
+
+  allFormQuestions = computed(() =>
+    this.form()?.sections.flatMap(s => s.questions) ?? []
+  );
 
   private static readonly NUMERIC_TYPE_IDS      = new Set([3, 12, 13, 14, 18, 20, 21, 22]);
   private static readonly GRAPH_SOURCE_TYPE_IDS = new Set([3, 12, 13, 14, 18, 20, 21, 22, 24]);
@@ -269,6 +278,7 @@ export class FormEditor implements OnInit {
     this.aqOptions.set([]); this.aqPendOpt.set('');
     this.aqScored.set([]); this.aqPendText.set(''); this.aqPendVal.set('');
     this.aqYesNoStyle.set('radio');
+    this.aqCondLogic.set(null);
     this.aqScale.set(5);
     this.aqError.set('');
     this.loadAttributes(q.questionAttributes, q.questionTypeId);
@@ -352,6 +362,9 @@ export class FormEditor implements OnInit {
       if (typeId === 19 && attrs['yesNoStyle']) {
         this.aqYesNoStyle.set(attrs['yesNoStyle'] as 'radio' | 'checkbox');
       }
+      if (typeId === 26 && attrs['conditionalLogic']) {
+        this.aqCondLogic.set(attrs['conditionalLogic'] as ConditionalLogicConfig);
+      }
       if (typeId === 13 && attrs['scale'] != null) {
         this.aqScale.set(attrs['scale'] as number);
       }
@@ -375,6 +388,7 @@ export class FormEditor implements OnInit {
     this.aqOptions.set([]); this.aqPendOpt.set('');
     this.aqScored.set([]); this.aqPendText.set(''); this.aqPendVal.set('');
     this.aqYesNoStyle.set('radio');
+    this.aqCondLogic.set(null);
     this.aqScale.set(5);
     this.aqTokens.set([]);
     this.aqGraphType.set('bar');
@@ -390,12 +404,14 @@ export class FormEditor implements OnInit {
     this.aqOptions.set([]); this.aqPendOpt.set('');
     this.aqScored.set([]); this.aqPendText.set(''); this.aqPendVal.set('');
     this.aqYesNoStyle.set('radio');
+    this.aqCondLogic.set(null);
     this.aqScale.set(5);
     this.aqTokens.set([]);
     this.aqGraphType.set('bar');
     this.aqGraphSourceIds.set([]);
     this.aqError.set('');
-    if (+typeId === 0) this.aqText.set('Instruction');
+    if (+typeId === 0)  this.aqText.set('Instruction');
+    if (+typeId === 26) this.aqText.set('Conditional Logic');
   }
 
   openFormulaWizard(): void {
@@ -420,6 +436,31 @@ export class FormEditor implements OnInit {
   }
 
   onGraphWizardCancelled(): void { this.showGraphWizard.set(false); }
+
+  openCondLogicWizard(): void { this.showCondLogicWizard.set(true); }
+
+  onCondLogicSaved(config: ConditionalLogicConfig): void {
+    this.aqCondLogic.set(config);
+    this.showCondLogicWizard.set(false);
+  }
+
+  onCondLogicCancelled(): void { this.showCondLogicWizard.set(false); }
+
+  condLogicPreview(): string {
+    const cfg = this.aqCondLogic();
+    if (!cfg) return 'No rule defined';
+    const allQ = this.form()?.sections.flatMap(s => s.questions) ?? [];
+    const srcQ  = allQ.find(q => q.questionId === cfg.condition.questionId);
+    const srcLabel = srcQ ? `Q${srcQ.order}` : `#${cfg.condition.questionId}`;
+    const opMap: Record<string, string> = { eq:'=', neq:'≠', gt:'>', lt:'<', gte:'≥', lte:'≤' };
+    const op = opMap[cfg.condition.operator] ?? cfg.condition.operator;
+    const actions = cfg.thenActions.map(a => {
+      const tq = allQ.find(q => q.questionId === a.questionId);
+      const tLabel = tq ? `Q${tq.order}` : `#${a.questionId}`;
+      return `${a.action} ${tLabel}`;
+    }).join(', ');
+    return `IF ${srcLabel} ${op} ${cfg.condition.value} THEN ${actions}`;
+  }
 
   insertPrevAnswer(q: QuestionDetail): void {
     this.aqText.update(t => `${t}{{Q:${q.questionId}}}`);
@@ -486,6 +527,9 @@ export class FormEditor implements OnInit {
     if (f.isYesNo) {
       attrs['yesNoStyle'] = this.aqYesNoStyle();
     }
+    if (f.isConditionalLogic && this.aqCondLogic()) {
+      attrs['conditionalLogic'] = this.aqCondLogic();
+    }
     if (f.isInstruction) {
       attrs['html'] = this.aqHtml();
     }
@@ -496,7 +540,8 @@ export class FormEditor implements OnInit {
 
   saveQuestion(): void {
     if (this.aqTypeId() < 0) { this.aqError.set('Please select a question type.'); return; }
-    if (this.aqTypeId() !== 0 && !this.aqText().trim()) { this.aqError.set('Question text is required.'); return; }
+    const autoTextTypes = new Set([0, 26]);
+    if (!autoTextTypes.has(this.aqTypeId()) && !this.aqText().trim()) { this.aqError.set('Question text is required.'); return; }
 
     const sectionId = this.aqSectionId()!;
     const attrs     = this.buildAttributes();

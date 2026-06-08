@@ -1,9 +1,10 @@
-import { Component, OnInit, computed, signal, inject } from '@angular/core';
+import { Component, OnInit, computed, signal, inject, effect, untracked } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import { SurveyService } from '../../services/survey.service';
 import {
+  ConditionalLogicConfig, ConditionOperator,
   LoadedQuestion, LoadedSection, LoadedSurvey,
   ParsedAttrs, ScoredOption, SurveyAnswerPayload, SurveyDetail
 } from '../../models/survey.model';
@@ -71,6 +72,34 @@ export class TakeSurvey implements OnInit {
   // which question's help panel is open (null = none)
   helpOpenId = signal<number | null>(null);
 
+  conditionalState = computed(() => {
+    const survey  = this.loadedSurvey();
+    const answers = this.answers();
+    const hiddenIds          = new Set<number>();
+    const extraRequiredIds   = new Set<number>();
+    const overrideUnreqIds   = new Set<number>();
+    if (!survey) return { hiddenIds, extraRequiredIds, overrideUnreqIds };
+
+    for (const section of survey.sections) {
+      for (const q of section.questions) {
+        if (q.questionTypeId !== 26) continue;
+        const cfg = q.attrs.conditionalLogic;
+        if (!cfg) continue;
+        const condTrue = this.evalCondition(cfg.condition, answers);
+        for (const a of cfg.thenActions) {
+          if (condTrue) {
+            if (a.action === 'hide')    hiddenIds.add(a.questionId);
+            if (a.action === 'require') extraRequiredIds.add(a.questionId);
+          } else {
+            if (a.action === 'show')    hiddenIds.add(a.questionId);
+            if (a.action === 'require') overrideUnreqIds.add(a.questionId);
+          }
+        }
+      }
+    }
+    return { hiddenIds, extraRequiredIds, overrideUnreqIds };
+  });
+
   hasFileQuestions = computed(() => {
     const s = this.loadedSurvey();
     if (!s) return false;
@@ -78,6 +107,23 @@ export class TakeSurvey implements OnInit {
   });
 
   ngOnInit(): void {
+    // Clear answers for questions that become hidden by conditional logic
+    effect(() => {
+      const { hiddenIds } = this.conditionalState();
+      if (hiddenIds.size === 0) return;
+      const current = untracked(() => this.answers());
+      const updated = { ...current };
+      let changed = false;
+      for (const id of hiddenIds) {
+        const val = updated[id];
+        if (val !== undefined && val !== '' && !(Array.isArray(val) && val.length === 0)) {
+          updated[id] = '';
+          changed = true;
+        }
+      }
+      if (changed) this.answers.set(updated);
+    });
+
     const formId = this.route.snapshot.paramMap.get('id')!;
     this.previewMode.set(this.route.snapshot.queryParamMap.get('preview') === '1');
 
@@ -223,6 +269,35 @@ export class TakeSurvey implements OnInit {
 
   npsItems(): number[] {
     return [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+  }
+
+  // ── Conditional logic evaluation ──────────────────────────────────────────
+
+  private evalCondition(
+    cond: ConditionalLogicConfig['condition'],
+    answers: Record<number, string | string[]>
+  ): boolean {
+    const raw = answers[cond.questionId];
+    const ansStr = Array.isArray(raw) ? raw.join(', ') : (raw ?? '');
+    const ansNum = parseFloat(ansStr);
+    const valNum = parseFloat(cond.value);
+    const op = cond.operator as ConditionOperator;
+    if (!isNaN(ansNum) && !isNaN(valNum)) {
+      switch (op) {
+        case 'eq':  return ansNum === valNum;
+        case 'neq': return ansNum !== valNum;
+        case 'gt':  return ansNum >   valNum;
+        case 'lt':  return ansNum <   valNum;
+        case 'gte': return ansNum >=  valNum;
+        case 'lte': return ansNum <=  valNum;
+      }
+    }
+    // string fallback
+    switch (op) {
+      case 'eq':  return ansStr === cond.value;
+      case 'neq': return ansStr !== cond.value;
+      default:    return false;
+    }
   }
 
   // ── Instruction rendering ─────────────────────────────────────────────────
@@ -388,18 +463,24 @@ export class TakeSurvey implements OnInit {
   }
 
   private validate(q: LoadedQuestion): string | null {
+    const { hiddenIds, extraRequiredIds, overrideUnreqIds } = this.conditionalState();
+    if (hiddenIds.has(q.questionId)) return null;
+
+    const isRequired = (q.attrs.required && !overrideUnreqIds.has(q.questionId))
+                    || extraRequiredIds.has(q.questionId);
+
     if (q.questionTypeId === T.IMAGE || q.questionTypeId === T.PDF) {
-      if (q.attrs.required && !this.fileAnswers()[q.questionId])
+      if (isRequired && !this.fileAnswers()[q.questionId])
         return 'Please upload a file.';
       return null;
     }
 
     const raw = this.answers()[q.questionId];
-    const { required, min, max } = q.attrs;
+    const { min, max } = q.attrs;
     const isEmpty = raw == null || raw === ''
       || (Array.isArray(raw) && raw.length === 0);
 
-    if (required && isEmpty) return 'This field is required.';
+    if (isRequired && isEmpty) return 'This field is required.';
     if (isEmpty) return null;  // non-required and empty → no error
 
     const val = Array.isArray(raw) ? '' : raw;
@@ -468,9 +549,12 @@ export class TakeSurvey implements OnInit {
 
   private buildPayload(survey: LoadedSurvey): SurveyAnswerPayload[] {
     const answerMap = this.answers();
+    const { hiddenIds } = this.conditionalState();
     return survey.allQuestions
       .map((q): SurveyAnswerPayload | null => {
         if (q.questionTypeId === T.INSTRUCTION) return null;
+        if (q.questionTypeId === 26) return null;
+        if (hiddenIds.has(q.questionId)) return { questionId: q.questionId, answerScalar: '' };
         if (q.questionTypeId === T.CALCULATION) {
           const val = this.calcValue(q);
           return val !== '—' ? { questionId: q.questionId, answerScalar: val } : null;
@@ -526,11 +610,13 @@ export class TakeSurvey implements OnInit {
     const survey = this.loadedSurvey();
     if (!survey) return;
 
-    // Validate all questions and collect errors (skip computed calculation questions)
+    // Validate all questions and collect errors (skip non-answerable and conditional-logic questions)
+    const { hiddenIds } = this.conditionalState();
     const newErrors: Record<number, string | null> = {};
     let hasErrors = false;
     for (const q of survey.allQuestions) {
-      if (q.questionTypeId === T.INSTRUCTION || q.questionTypeId === T.CALCULATION || q.questionTypeId === T.GRAPH) continue;
+      if (q.questionTypeId === T.INSTRUCTION || q.questionTypeId === T.CALCULATION || q.questionTypeId === T.GRAPH || q.questionTypeId === 26) continue;
+      if (hiddenIds.has(q.questionId)) continue;
       const err = this.validate(q);
       newErrors[q.questionId] = err;
       if (err) hasErrors = true;

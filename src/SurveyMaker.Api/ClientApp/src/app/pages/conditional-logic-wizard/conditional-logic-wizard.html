@@ -1,0 +1,102 @@
+<div class="clw-backdrop" (click)="cancel()"></div>
+<div class="clw-modal">
+
+  <div class="clw-header">
+    <h2 class="clw-title">Conditional Logic</h2>
+    <button type="button" class="clw-close" (click)="cancel()">✕</button>
+  </div>
+
+  <!-- ── IF ────────────────────────────────────────────────────── -->
+  <div class="clw-section-label">IF</div>
+  <div class="clw-if-row">
+    <div class="clw-field clw-field--grow">
+      <label class="clw-label">Question</label>
+      <select class="clw-select"
+        [ngModel]="sourceQuestionId()"
+        (ngModelChange)="sourceQuestionId.set($event === '' ? null : +$event)">
+        <option value="">— select question —</option>
+        @for (q of eligibleQuestions(); track q.questionId) {
+          <option [value]="q.questionId">Q{{ q.order }}: {{ q.text | slice:0:60 }}</option>
+        }
+      </select>
+    </div>
+    <div class="clw-field clw-field--op">
+      <label class="clw-label">Operator</label>
+      <select class="clw-select"
+        [ngModel]="operator()"
+        (ngModelChange)="operator.set($event)">
+        @for (op of operators; track op.value) {
+          <option [value]="op.value">{{ op.label }}</option>
+        }
+      </select>
+    </div>
+    <div class="clw-field clw-field--val">
+      <label class="clw-label">Value</label>
+      <input class="clw-input" type="text" placeholder="e.g. 5"
+        [ngModel]="value()" (ngModelChange)="value.set($event)" />
+    </div>
+  </div>
+
+  <!-- ── THEN ──────────────────────────────────────────────────── -->
+  <div class="clw-section-label">THEN</div>
+
+  <!-- existing actions -->
+  @if (thenActions().length > 0) {
+    <div class="clw-actions-list">
+      @for (a of thenActions(); track $index; let i = $index) {
+        <div class="clw-action-row">
+          <span class="clw-action-verb">{{ actionLabel(a.action) }}</span>
+          <span class="clw-action-q">{{ questionLabel(a.questionId) }}</span>
+          <button type="button" class="clw-action-remove" (click)="removeAction(i)" title="Remove">✕</button>
+        </div>
+      }
+    </div>
+  }
+
+  <!-- add action row -->
+  @if (availableTargets().length > 0) {
+    <div class="clw-add-action-row">
+      <select class="clw-select clw-field--grow"
+        [ngModel]="pendingTargetId()"
+        (ngModelChange)="pendingTargetId.set($event === '' ? null : +$event)">
+        <option value="">— select question —</option>
+        @for (q of availableTargets(); track q.questionId) {
+          <option [value]="q.questionId">Q{{ q.order }}: {{ q.text | slice:0:60 }}</option>
+        }
+      </select>
+      <select class="clw-select clw-field--action"
+        [ngModel]="pendingAction()"
+        (ngModelChange)="pendingAction.set($event)">
+        @for (a of actions; track a.value) {
+          <option [value]="a.value">{{ a.label }}</option>
+        }
+      </select>
+      <button type="button" class="btn btn-outline btn-sm" (click)="addAction()">+ Add</button>
+    </div>
+  } @else if (thenActions().length === 0) {
+    <p class="clw-empty">No questions available to target.</p>
+  }
+
+  <!-- ── ELSE note ──────────────────────────────────────────────── -->
+  @if (thenActions().length > 0) {
+    <div class="clw-else-note">
+      <strong>ELSE (when condition is false):</strong>
+      @for (a of thenActions(); track $index) {
+        <span class="clw-else-item">
+          {{ a.action === 'show' ? 'Hide' : a.action === 'hide' ? 'Show' : 'Unrequire' }}
+          {{ questionLabel(a.questionId) }}
+        </span>
+      }
+    </div>
+  }
+
+  @if (error()) {
+    <div class="clw-error">{{ error() }}</div>
+  }
+
+  <div class="clw-footer">
+    <button type="button" class="btn btn-outline" (click)="cancel()">Cancel</button>
+    <button type="button" class="btn btn-accent" (click)="save()">Save Rule</button>
+  </div>
+
+</div>

@@ -447,7 +447,7 @@ public class FormsController(SurveyMakerDbContext db) : ControllerBase
     public async Task<IActionResult> AddQuestion(
         Guid formId, int sectionId, [FromBody] AddQuestionRequest request)
     {
-        if (request.QuestionTypeId != 0 && string.IsNullOrWhiteSpace(request.Text))
+        if (request.QuestionTypeId != 0 && request.QuestionTypeId != 26 && string.IsNullOrWhiteSpace(request.Text))
             return BadRequest(new { error = "Question text is required." });
 
         var sectionExists = await db.Sections
@@ -482,7 +482,7 @@ public class FormsController(SurveyMakerDbContext db) : ControllerBase
     public async Task<IActionResult> UpdateQuestion(
         Guid formId, int sectionId, int questionId, [FromBody] AddQuestionRequest request)
     {
-        if (request.QuestionTypeId != 0 && string.IsNullOrWhiteSpace(request.Text))
+        if (request.QuestionTypeId != 0 && request.QuestionTypeId != 26 && string.IsNullOrWhiteSpace(request.Text))
             return BadRequest(new { error = "Question text is required." });
 
         var question = await db.Questions

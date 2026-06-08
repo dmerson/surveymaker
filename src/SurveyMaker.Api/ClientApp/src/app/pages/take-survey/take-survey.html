@@ -118,7 +118,9 @@
         <!-- ── Individual question layout ────────────────────────── -->
         @for (q of section.questions; track q.questionId) {
 
-          @if (q.questionTypeId === T.INSTRUCTION) {
+          @if (q.questionTypeId === 26 || conditionalState().hiddenIds.has(q.questionId)) {
+            <!-- hidden / conditional logic — not rendered -->
+          } @else if (q.questionTypeId === T.INSTRUCTION) {
             <div class="sv-instruction" [innerHTML]="safeHtml(q)"></div>
           } @else {
 
@@ -126,7 +128,7 @@
 
             <div class="sv-q-label">
               <span class="sv-q-text">{{ resolveText(q) }}</span>
-              @if (q.attrs.required) { <span class="sv-req">*</span> }
+              @if (q.attrs.required || conditionalState().extraRequiredIds.has(q.questionId)) { <span class="sv-req">*</span> }
               @if (q.attrs.help) {
                 <button type="button" class="sv-help-btn"
                   [class.sv-help-btn--open]="helpOpenId() === q.questionId"
