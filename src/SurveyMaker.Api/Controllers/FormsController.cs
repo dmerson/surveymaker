@@ -255,7 +255,7 @@ public class FormsController(SurveyMakerDbContext db) : ControllerBase
         if (form is null) return NotFound();
 
         var questions = await db.Questions
-            .Where(q => q.Section.FormId == formId)
+            .Where(q => q.Section.FormId == formId && q.QuestionTypeId != 0)
             .OrderBy(q => q.Section.Order)
             .ThenBy(q => q.Order)
             .Select(q => new {
@@ -447,7 +447,7 @@ public class FormsController(SurveyMakerDbContext db) : ControllerBase
     public async Task<IActionResult> AddQuestion(
         Guid formId, int sectionId, [FromBody] AddQuestionRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Text))
+        if (request.QuestionTypeId != 0 && string.IsNullOrWhiteSpace(request.Text))
             return BadRequest(new { error = "Question text is required." });
 
         var sectionExists = await db.Sections
@@ -465,7 +465,7 @@ public class FormsController(SurveyMakerDbContext db) : ControllerBase
         {
             SectionId          = sectionId,
             Order              = request.Order > 0 ? request.Order : maxOrder + 1,
-            Text               = request.Text.Trim(),
+            Text               = request.Text?.Trim() ?? string.Empty,
             QuestionTypeId     = request.QuestionTypeId,
             QuestionAttributes = request.QuestionAttributes
         };
@@ -482,7 +482,7 @@ public class FormsController(SurveyMakerDbContext db) : ControllerBase
     public async Task<IActionResult> UpdateQuestion(
         Guid formId, int sectionId, int questionId, [FromBody] AddQuestionRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.Text))
+        if (request.QuestionTypeId != 0 && string.IsNullOrWhiteSpace(request.Text))
             return BadRequest(new { error = "Question text is required." });
 
         var question = await db.Questions
@@ -494,7 +494,7 @@ public class FormsController(SurveyMakerDbContext db) : ControllerBase
                                    && q.Section.Form.FormCreatorEmail == UserEmail);
         if (question is null) return NotFound();
 
-        question.Text               = request.Text.Trim();
+        question.Text               = request.Text?.Trim() ?? string.Empty;
         question.QuestionTypeId     = request.QuestionTypeId;
         question.QuestionAttributes = request.QuestionAttributes;
 

@@ -2,6 +2,7 @@ import { Component, OnInit, computed, signal, inject } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { NgTemplateOutlet } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { QuillEditorComponent } from 'ngx-quill';
 import { FormService } from '../../services/form.service';
 import { FormDetail, QuestionDetail, QuestionType, SectionDetail } from '../../models/form.model';
 import { FormulaToken, GraphType } from '../../models/survey.model';
@@ -10,11 +11,21 @@ import { GraphWizard } from '../graph-wizard/graph-wizard';
 
 @Component({
   selector: 'app-form-editor',
-  imports: [FormsModule, RouterLink, NgTemplateOutlet, FormulaWizard, GraphWizard],
+  imports: [FormsModule, RouterLink, NgTemplateOutlet, FormulaWizard, GraphWizard, QuillEditorComponent],
   templateUrl: './form-editor.html',
   styleUrl: './form-editor.scss'
 })
 export class FormEditor implements OnInit {
+  readonly quillModules = {
+    toolbar: [
+      [{ header: [1, 2, 3, false] }],
+      ['bold', 'italic', 'underline', 'strike'],
+      [{ list: 'ordered' }, { list: 'bullet' }],
+      ['link'],
+      ['clean']
+    ]
+  };
+
   // ── Data ─────────────────────────────────────────────────────────────────
   form          = signal<FormDetail | null>(null);
   questionTypes = signal<QuestionType[]>([]);
@@ -24,8 +35,10 @@ export class FormEditor implements OnInit {
   // ── Add/Edit Question state ───────────────────────────────────────────────
   aqSectionId         = signal<number | null>(null);  // null = panel closed
   aqEditingQuestionId = signal<number | null>(null);  // null = adding new
-  aqTypeId     = signal(0);
+  aqTypeId     = signal(-1);  // -1 = no type selected; 0 = Instruction
   aqText       = signal('');
+  // instruction type
+  aqHtml       = signal('');
   aqOrder      = signal(1);
   aqRequired   = signal(false);
   // text types
@@ -86,6 +99,9 @@ export class FormEditor implements OnInit {
   showDeleteConfirm = signal(false);
   deleting          = signal(false);
 
+  // ── Insert Previous Answer ────────────────────────────────────────────────
+  showPrevAnswerDropdown = signal(false);
+
   // ── Computed ──────────────────────────────────────────────────────────────
   hasAnyQuestion = computed(() =>
     (this.form()?.sections ?? []).some(s => s.questions.length > 0)
@@ -108,6 +124,7 @@ export class FormEditor implements OnInit {
   typeFlags = computed(() => {
     const id = this.aqTypeId();
     return {
+      isInstruction:  id === 0,
       hasMinMax:      [1, 2].includes(id),
       hasNumberRange: [3, 12, 14].includes(id),
       hasOptions:     [4, 5, 6].includes(id),
@@ -143,6 +160,26 @@ export class FormEditor implements OnInit {
     return f.sections
       .flatMap(s => s.questions)
       .filter(q => FormEditor.GRAPH_SOURCE_TYPE_IDS.has(q.questionTypeId) && q.questionId !== editId);
+  });
+
+  prevAnswerQuestions = computed(() => {
+    const sf = this.sortedForm();
+    if (!sf) return [];
+    const sectionId = this.aqSectionId();
+    const editId    = this.aqEditingQuestionId();
+    const order     = this.aqOrder();
+    const currentSec = sf.sections.find(s => s.sectionId === sectionId);
+    if (!currentSec) return [];
+
+    const result: QuestionDetail[] = [];
+    for (const sec of sf.sections) {
+      if (sec.order < currentSec.order) {
+        result.push(...sec.questions.filter(q => q.questionId !== editId && q.questionTypeId !== 0));
+      } else if (sec.sectionId === sectionId) {
+        result.push(...sec.questions.filter(q => q.questionId !== editId && q.order < order && q.questionTypeId !== 0));
+      }
+    }
+    return result;
   });
 
   graphPreview = computed(() => {
@@ -236,6 +273,10 @@ export class FormEditor implements OnInit {
     if (!attrsJson || attrsJson === '{}') return;
     try {
       const attrs = JSON.parse(attrsJson);
+      if (typeId === 0) {
+        if (attrs['html'] != null) this.aqHtml.set(attrs['html'] as string);
+        return;
+      }
       if (attrs['required']) this.aqRequired.set(true);
       if ([1, 2].includes(typeId)) {
         if (attrs['min'] != null) this.aqMinLen.set(String(attrs['min']));
@@ -268,8 +309,9 @@ export class FormEditor implements OnInit {
   }
 
   private resetAqFields(): void {
-    this.aqTypeId.set(0);
+    this.aqTypeId.set(-1);
     this.aqText.set('');
+    this.aqHtml.set('');
     this.aqRequired.set(false);
     this.aqMinLen.set(''); this.aqMaxLen.set('');
     this.aqMinVal.set(''); this.aqMaxVal.set('');
@@ -284,6 +326,7 @@ export class FormEditor implements OnInit {
 
   onTypeChange(typeId: number): void {
     this.aqTypeId.set(+typeId);
+    this.aqHtml.set('');
     this.aqMinLen.set(''); this.aqMaxLen.set('');
     this.aqMinVal.set(''); this.aqMaxVal.set('');
     this.aqOptions.set([]); this.aqPendOpt.set('');
@@ -293,6 +336,7 @@ export class FormEditor implements OnInit {
     this.aqGraphType.set('bar');
     this.aqGraphSourceIds.set([]);
     this.aqError.set('');
+    if (+typeId === 0) this.aqText.set('');
   }
 
   openFormulaWizard(): void {
@@ -317,6 +361,11 @@ export class FormEditor implements OnInit {
   }
 
   onGraphWizardCancelled(): void { this.showGraphWizard.set(false); }
+
+  insertPrevAnswer(q: QuestionDetail): void {
+    this.aqText.update(t => `${t}{{Q:${q.questionId}}}`);
+    this.showPrevAnswerDropdown.set(false);
+  }
 
   addOption(): void {
     const opt = this.aqPendOpt().trim();
@@ -375,14 +424,17 @@ export class FormEditor implements OnInit {
       attrs['graphType']        = this.aqGraphType();
       attrs['sourceQuestionIds'] = this.aqGraphSourceIds();
     }
+    if (f.isInstruction) {
+      attrs['html'] = this.aqHtml();
+    }
 
     // Always store valid JSON; never null
     return JSON.stringify(attrs);
   }
 
   saveQuestion(): void {
-    if (!this.aqTypeId()) { this.aqError.set('Please select a question type.'); return; }
-    if (!this.aqText().trim()) { this.aqError.set('Question text is required.'); return; }
+    if (this.aqTypeId() < 0) { this.aqError.set('Please select a question type.'); return; }
+    if (this.aqTypeId() !== 0 && !this.aqText().trim()) { this.aqError.set('Question text is required.'); return; }
 
     const sectionId = this.aqSectionId()!;
     const attrs     = this.buildAttributes();

@@ -97,7 +97,7 @@
           <select class="aq-select"
             [ngModel]="aqTypeId()"
             (ngModelChange)="onTypeChange($event)">
-            <option value="0" disabled>Select type…</option>
+            <option value="-1" disabled>Select type…</option>
             @for (qt of filteredQuestionTypes(); track qt.questionTypeId) {
               <option [value]="qt.questionTypeId">{{ qt.questionTypeName }}</option>
             }
@@ -116,12 +116,45 @@
         }
       </div>
 
-      @if (aqTypeId() > 0) {
+      @if (aqTypeId() >= 0) {
+
+        @if (typeFlags().isInstruction) {
+          <div class="aq-field">
+            <label class="aq-label">Instruction Content</label>
+            <quill-editor class="aq-quill-editor"
+              [ngModel]="aqHtml()"
+              (ngModelChange)="aqHtml.set($event)"
+              [modules]="quillModules"
+              placeholder="Enter instruction content…"
+              theme="snow">
+            </quill-editor>
+          </div>
+        } @else {
         <div class="aq-field aq-text-field">
           <label class="aq-label">Question Text <span class="req">*</span></label>
           <input class="aq-input" type="text" placeholder="Enter your question…"
             [ngModel]="aqText()" (ngModelChange)="aqText.set($event)"
             (keydown.enter)="saveQuestion()" />
+          <div class="aq-prev-wrap">
+            <button type="button" class="aq-prev-btn"
+              (click)="showPrevAnswerDropdown.set(!showPrevAnswerDropdown())">
+              + Insert Previous Answer
+            </button>
+            @if (showPrevAnswerDropdown()) {
+              <div class="aq-prev-dropdown">
+                @if (prevAnswerQuestions().length === 0) {
+                  <div class="aq-prev-empty">No previous questions available</div>
+                } @else {
+                  @for (pq of prevAnswerQuestions(); track pq.questionId) {
+                    <button type="button" class="aq-prev-opt" (click)="insertPrevAnswer(pq)">
+                      <span class="aq-prev-num">Q{{ pq.order }}</span>
+                      <span class="aq-prev-text">{{ pq.text }}</span>
+                    </button>
+                  }
+                }
+              </div>
+            }
+          </div>
         </div>
 
         @if (typeFlags().hasMinMax) {
@@ -234,6 +267,9 @@
             </button>
           </div>
         }
+
+        } <!-- end @else (non-instruction types) -->
+
       }
 
       @if (aqError()) {

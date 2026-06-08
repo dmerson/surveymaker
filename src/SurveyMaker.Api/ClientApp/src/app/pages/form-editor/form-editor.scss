@@ -396,6 +396,104 @@
 }
 .aq-text-field { margin-bottom: 0.85rem; }
 
+// ── Instruction Quill editor ───────────────────────────────────────────────
+.aq-quill-editor {
+  display: block;
+  width: 100%;
+
+  // toolbar inherits from quill.snow.css — just ensure border matches theme
+  ::ng-deep .ql-toolbar {
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    border-color: var(--c-border);
+    background: var(--c-surface);
+  }
+
+  ::ng-deep .ql-container {
+    border-radius: 0 0 var(--radius-sm) var(--radius-sm);
+    border-color: var(--c-border);
+    min-height: 160px;
+    font-size: 0.9rem;
+    font-family: inherit;
+  }
+
+  ::ng-deep .ql-editor {
+    min-height: 160px;
+    line-height: 1.6;
+  }
+}
+
+// ── Insert Previous Answer ─────────────────────────────────────────────────
+.aq-prev-wrap {
+  position: relative;
+  margin-top: 0.35rem;
+}
+
+.aq-prev-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--c-teal);
+  cursor: pointer;
+  font-family: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  &:hover { color: var(--c-deep); }
+}
+
+.aq-prev-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  z-index: 50;
+  background: var(--c-white);
+  border: 1.5px solid var(--c-border);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+  min-width: 280px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.aq-prev-opt {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.875rem;
+  color: var(--c-text);
+  border-bottom: 1px solid var(--c-border);
+  &:last-child { border-bottom: none; }
+  &:hover { background: var(--c-foam); }
+}
+
+.aq-prev-num {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--c-teal);
+  flex-shrink: 0;
+}
+
+.aq-prev-text {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.aq-prev-empty {
+  padding: 0.65rem 0.75rem;
+  font-size: 0.83rem;
+  color: var(--c-text-light);
+  font-style: italic;
+}
+
 .aq-label {
   font-size: 0.78rem;
   font-weight: 600;
