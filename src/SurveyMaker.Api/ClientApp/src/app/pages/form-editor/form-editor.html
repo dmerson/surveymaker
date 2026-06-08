@@ -417,7 +417,7 @@
                       <button class="btn btn-outline btn-sm"
                         (click)="cancelEdit()" [disabled]="aqSaving()">Cancel</button>
                       <button class="btn btn-accent"
-                        [disabled]="aqSaving() || aqTypeId() === 0"
+                        [disabled]="aqSaving()"
                         (click)="saveQuestion()">
                         @if (aqSaving()) { Updating… } @else { Update Question }
                       </button>
@@ -440,7 +440,7 @@
             <ng-container [ngTemplateOutlet]="aqFields"></ng-container>
             <div class="aq-actions">
               <button class="btn btn-accent"
-                [disabled]="aqSaving() || aqTypeId() === 0"
+                [disabled]="aqSaving()"
                 (click)="saveQuestion()">
                 @if (aqSaving()) { Saving… } @else { Save Question }
               </button>
