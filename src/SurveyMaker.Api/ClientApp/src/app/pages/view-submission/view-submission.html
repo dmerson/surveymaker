@@ -107,7 +107,14 @@
                 @case (T.YES_NO) {
                   <div class="sv-answer-opts">
                     @for (opt of ['Yes', 'No']; track opt) {
-                      <span class="sv-opt-pill" [class.sv-opt-pill--selected]="q.answerScalar === opt">{{ opt }}</span>
+                      <span class="sv-opt-pill"
+                        [class.sv-opt-pill--selected]="q.answerScalar === opt"
+                        [class.sv-opt-pill--checkbox]="q.attrs.yesNoStyle === 'checkbox'">
+                        @if (q.attrs.yesNoStyle === 'checkbox') {
+                          <span class="sv-opt-check">{{ q.answerScalar === opt ? '☑' : '☐' }}</span>
+                        }
+                        {{ opt }}
+                      </span>
                     }
                   </div>
                 }

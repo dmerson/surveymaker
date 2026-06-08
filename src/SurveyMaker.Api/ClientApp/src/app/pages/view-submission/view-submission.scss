@@ -185,6 +185,10 @@
   color: var(--c-text-mid);
   white-space: nowrap;
 
+  &.sv-opt-pill--checkbox {
+    border-radius: var(--radius-sm);
+  }
+
   &.sv-opt-pill--selected {
     border-color: var(--c-teal);
     background: var(--c-foam);

@@ -247,6 +247,20 @@
           </div>
         }
 
+        @if (typeFlags().isYesNo) {
+          <div class="aq-field">
+            <label class="aq-label">Input Style</label>
+            <div class="scale-btns">
+              <button type="button" class="scale-btn"
+                [class.active]="aqYesNoStyle() === 'radio'"
+                (click)="aqYesNoStyle.set('radio')">Radio</button>
+              <button type="button" class="scale-btn"
+                [class.active]="aqYesNoStyle() === 'checkbox'"
+                (click)="aqYesNoStyle.set('checkbox')">Checkbox</button>
+            </div>
+          </div>
+        }
+
         @if (typeFlags().isFormula) {
           <div class="aq-field">
             <label class="aq-label">Formula</label>

@@ -54,6 +54,8 @@ export class FormEditor implements OnInit {
   aqScored     = signal<{ text: string; value: string }[]>([]);
   aqPendText   = signal('');
   aqPendVal    = signal('');
+  // yes/no type
+  aqYesNoStyle = signal<'radio' | 'checkbox'>('radio');
   // scale types (Likert)
   aqScale      = signal(5);
   // formula types (Calculation)
@@ -136,6 +138,7 @@ export class FormEditor implements OnInit {
       hasOptions:     [4, 5, 6].includes(id),
       hasScored:      [20, 21, 22].includes(id),
       hasScale:       [13].includes(id),
+      isYesNo:        id === 19,
       isFormula:      id === 24,
       isGraph:        id === 25,
     };
@@ -265,6 +268,7 @@ export class FormEditor implements OnInit {
     this.aqMinVal.set(''); this.aqMaxVal.set('');
     this.aqOptions.set([]); this.aqPendOpt.set('');
     this.aqScored.set([]); this.aqPendText.set(''); this.aqPendVal.set('');
+    this.aqYesNoStyle.set('radio');
     this.aqScale.set(5);
     this.aqError.set('');
     this.loadAttributes(q.questionAttributes, q.questionTypeId);
@@ -345,6 +349,9 @@ export class FormEditor implements OnInit {
             .map(o => ({ text: o.text, value: String(o.value) }))
         );
       }
+      if (typeId === 19 && attrs['yesNoStyle']) {
+        this.aqYesNoStyle.set(attrs['yesNoStyle'] as 'radio' | 'checkbox');
+      }
       if (typeId === 13 && attrs['scale'] != null) {
         this.aqScale.set(attrs['scale'] as number);
       }
@@ -367,6 +374,7 @@ export class FormEditor implements OnInit {
     this.aqMinVal.set(''); this.aqMaxVal.set('');
     this.aqOptions.set([]); this.aqPendOpt.set('');
     this.aqScored.set([]); this.aqPendText.set(''); this.aqPendVal.set('');
+    this.aqYesNoStyle.set('radio');
     this.aqScale.set(5);
     this.aqTokens.set([]);
     this.aqGraphType.set('bar');
@@ -381,6 +389,7 @@ export class FormEditor implements OnInit {
     this.aqMinVal.set(''); this.aqMaxVal.set('');
     this.aqOptions.set([]); this.aqPendOpt.set('');
     this.aqScored.set([]); this.aqPendText.set(''); this.aqPendVal.set('');
+    this.aqYesNoStyle.set('radio');
     this.aqScale.set(5);
     this.aqTokens.set([]);
     this.aqGraphType.set('bar');
@@ -473,6 +482,9 @@ export class FormEditor implements OnInit {
     if (f.isGraph && this.aqGraphSourceIds().length >= 2) {
       attrs['graphType']        = this.aqGraphType();
       attrs['sourceQuestionIds'] = this.aqGraphSourceIds();
+    }
+    if (f.isYesNo) {
+      attrs['yesNoStyle'] = this.aqYesNoStyle();
     }
     if (f.isInstruction) {
       attrs['html'] = this.aqHtml();

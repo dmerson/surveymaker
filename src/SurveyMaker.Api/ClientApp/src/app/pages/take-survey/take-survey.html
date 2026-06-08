@@ -359,9 +359,15 @@
                   <div class="sv-yesno">
                     @for (opt of ['Yes', 'No']; track opt) {
                       <label class="sv-yesno-opt">
-                        <input type="radio" [name]="'q' + q.questionId" [value]="opt"
-                          [checked]="strAnswer(q.questionId) === opt"
-                          (change)="setAnswer(q.questionId, opt); onBlur(q)" />
+                        @if (q.attrs.yesNoStyle === 'checkbox') {
+                          <input type="checkbox"
+                            [checked]="strAnswer(q.questionId) === opt"
+                            (change)="setAnswer(q.questionId, strAnswer(q.questionId) === opt ? '' : opt); onBlur(q)" />
+                        } @else {
+                          <input type="radio" [name]="'q' + q.questionId" [value]="opt"
+                            [checked]="strAnswer(q.questionId) === opt"
+                            (change)="setAnswer(q.questionId, opt); onBlur(q)" />
+                        }
                         <span>{{ opt }}</span>
                       </label>
                     }

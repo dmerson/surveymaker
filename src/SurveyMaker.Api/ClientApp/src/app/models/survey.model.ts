@@ -43,6 +43,7 @@ export interface ParsedAttrs {
   sourceQuestionIds?: number[];
   html?: string;
   help?: string;
+  yesNoStyle?: 'radio' | 'checkbox';
 }
 
 export type FormulaToken =
